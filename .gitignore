@@ -1,0 +1,10 @@
+gradlew
+gradlew.bat
+java-gm.iml
+.gradle
+.idea
+gradle
+.vscode
+build
+priv.pem
+pub.pem
