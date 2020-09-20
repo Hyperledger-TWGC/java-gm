@@ -1,13 +1,13 @@
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.Security;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
  * @author Sean
@@ -16,7 +16,11 @@ import java.security.Security;
  */
 public class SM4Util {
 
-    private final static String ALGORITHM_NAME = "SM4";
+    private static String algorithmName = "SM4";
+
+    private SM4Util() {
+
+    }
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -85,7 +89,7 @@ public class SM4Util {
         if (iv != null) {
             ivParameterSpec = new IvParameterSpec(iv);
         }
-        SecretKeySpec sm4Key = new SecretKeySpec(key, ALGORITHM_NAME);
+        SecretKeySpec sm4Key = new SecretKeySpec(key, algorithmName);
         Cipher cipher = Cipher.getInstance(sm4ModeAndPaddingEnum.getName(), BouncyCastleProvider.PROVIDER_NAME);
         if (ivParameterSpec == null) {
             cipher.init(mode, sm4Key);
@@ -106,7 +110,7 @@ public class SM4Util {
     }
 
     public static byte[] generateKey(int keySize) throws NoSuchAlgorithmException, NoSuchProviderException {
-        KeyGenerator kg = KeyGenerator.getInstance(ALGORITHM_NAME, BouncyCastleProvider.PROVIDER_NAME);
+        KeyGenerator kg = KeyGenerator.getInstance(algorithmName, BouncyCastleProvider.PROVIDER_NAME);
         kg.init(keySize, new SecureRandom());
         return kg.generateKey().getEncoded();
     }
