@@ -1,9 +1,8 @@
+import java.nio.charset.Charset;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.nio.charset.Charset;
-
 /**
  * @author Sean
  * @Description: 国密算法SM4工具类测试

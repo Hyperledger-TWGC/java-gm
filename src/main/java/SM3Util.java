@@ -1,8 +1,8 @@
-import org.bouncycastle.crypto.digests.SM3Digest;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import java.security.Security;
 import java.util.Arrays;
+
+import org.bouncycastle.crypto.digests.SM3Digest;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
  * @author Sean
@@ -11,7 +11,11 @@ import java.util.Arrays;
  */
 public class SM3Util {
 
-    static{
+    private SM3Util() {
+
+    }
+
+    static {
         Security.addProvider(new BouncyCastleProvider());
     }
 
@@ -38,10 +42,6 @@ public class SM3Util {
      */
     public static boolean verify(byte[] srcData, byte[] sm3HashVal) {
         byte[] hashVal = hash(srcData);
-        if (Arrays.equals(hashVal, sm3HashVal)) {
-            return true;
-        } else {
-            return false;
-        }
+        return Arrays.equals(hashVal, sm3HashVal);
     }
 }

@@ -3,20 +3,10 @@
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/java
 
-trigger:
-- master
 pool:
   vmImage: 'ubuntu-latest'
 
-strategy:
-  matrix:
-    jdk8withfabric14:
-      fabricSdkJavaVersion: 1.4.6
-      jdkVersion: 1.8
-
 steps:
-#- script: ./cicd.sh
-#  displayName: 'Run cicd script'
 - task: Gradle@2
   inputs:
     workingDirectory: ''
