@@ -5,3 +5,4 @@ java-gm.iml
 build
 priv.pem
 pub.pem
+req.pem
