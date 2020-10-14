@@ -1,12 +1,3 @@
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.*;
-import java.security.spec.ECGenParameterSpec;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import javax.security.auth.x500.X500Principal;
-
 import org.bouncycastle.asn1.gm.GMNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
@@ -27,10 +18,19 @@ import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.bouncycastle.util.io.pem.PemWriter;
 
+import javax.security.auth.x500.X500Principal;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.security.*;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+
 /**
- * @author SamYuan
- * @co-author 吴仙杰
- * @Description: 国密SM2工具类
+ * @author SamYuan; 吴仙杰
+ * @Description 国密SM2工具类, 算法提供者 Bouncy Castle
  * @date 2020/10
  * ref:
  * https://tools.ietf.org/html/draft-shen-sm2-ecdsa-02
@@ -40,16 +40,12 @@ import org.bouncycastle.util.io.pem.PemWriter;
  * https://www.pixelstech.net/article/1464167276-Generating-CSR-using-Java
  * http://senthadev.com/generating-csr-using-java-and-bouncycastle-api.html
  * https://github.com/Trisia/alg-sm2-demo
-*/
+ */
 public class SM2Util {
 
     private SM2Util() {
 
     }
-
-    /**
-     * 算法提供者 Bouncy Castle
-     */
 
     private static final String BC_VALUE = "BC";
     private static final String EC_VALUE = "EC";
@@ -74,14 +70,12 @@ public class SM2Util {
     public static KeyPair generatekeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
         KeyPairGenerator generator = KeyPairGenerator.getInstance(EC_VALUE, BC_VALUE);
         generator.initialize(new ECGenParameterSpec(CURVE_NAME));
-        KeyPair keyPair = generator.generateKeyPair();
-        return keyPair;
+        return generator.generateKeyPair();
     }
 
     // currently only support for SM3SM2_VALUE for hash
     public static Signature generateSignature() throws NoSuchAlgorithmException, NoSuchProviderException {
-        Signature signature = Signature.getInstance(SM3SM2_VALUE, BC_VALUE);
-        return signature;
+        return Signature.getInstance(SM3SM2_VALUE, BC_VALUE);
     }
 
     public static byte[] encrypt(PublicKey publicKey, byte[] message) throws InvalidCipherTextException {
@@ -101,11 +95,9 @@ public class SM2Util {
     }
 
     public static byte[] sign(Signature signature, PrivateKey privateKey, byte[] message) throws SignatureException, InvalidKeyException {
-        signature.initSign(privateKey,
-                new SecureRandom());
+        signature.initSign(privateKey, new SecureRandom());
         signature.update(message);
-        byte[] sigBytes = signature.sign();
-        return sigBytes;
+        return signature.sign();
     }
 
     public static boolean verify(Signature signature, PublicKey publicKey, byte[] message, byte[] sigBytes) throws InvalidKeyException, SignatureException {
@@ -114,36 +106,30 @@ public class SM2Util {
         return signature.verify(sigBytes);
     }
 
-    public static void saveKeyPairInPem(KeyPair keyPair, String pubFileName, String privFileName) throws IOException {
-        savePemFormatKeyFile(keyPair.getPrivate(), privFileName);
-        savePemFormatPubKeyFile(keyPair.getPublic(), pubFileName);
-    }
-
-    public static void saveCSRInPem(KeyPair keyPair, X500Principal subject, String csrFile) throws IOException, OperatorCreationException {
+    public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, X500Principal subject) throws IOException, OperatorCreationException {
         ContentSigner signer = new JcaContentSignerBuilder("SM3withSM2").build(keyPair.getPrivate());
         PKCS10CertificationRequestBuilder builder = new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
-        PKCS10CertificationRequest csr = builder.build(signer);
-        savePemFormatCRSFile(csr, csrFile);
+        return builder.build(signer);
     }
 
-    private static void savePemFormatKeyFile(PrivateKey privateKey, String filename) throws IOException {
+    public static String PemFrom(PrivateKey privateKey) throws IOException {
         PemObject pem = new PemObject("EC PRIVATE KEY", privateKey.getEncoded());
         StringWriter str = new StringWriter();
         PemWriter pemWriter = new PemWriter(str);
         pemWriter.writeObject(pem);
         pemWriter.close();
         str.close();
-        Files.write(Paths.get(filename), str.toString().getBytes());
+        return str.toString();
     }
 
-    private static void savePemFormatPubKeyFile(PublicKey publicKey, String filename) throws IOException {
+    public static String PemFrom(PublicKey publicKey) throws IOException {
         PemObject pem = new PemObject("PUBLIC KEY", publicKey.getEncoded());
         StringWriter str = new StringWriter();
         PemWriter pemWriter = new PemWriter(str);
         pemWriter.writeObject(pem);
         pemWriter.close();
         str.close();
-        Files.write(Paths.get(filename), str.toString().getBytes());
+        return str.toString();
     }
 
     /**
@@ -151,30 +137,26 @@ public class SM2Util {
      *
      * @param csr 证书请求对象
      */
-    private static void savePemFormatCRSFile(PKCS10CertificationRequest csr, String filename) throws IOException {
+    public static String PemFrom(PKCS10CertificationRequest csr) throws IOException {
         PemObject pem = new PemObject("CERTIFICATE REQUEST", csr.getEncoded());
         StringWriter str = new StringWriter();
         PemWriter pemWriter = new PemWriter(str);
         pemWriter.writeObject(pem);
         pemWriter.close();
         str.close();
-        Files.write(Paths.get(filename), str.toString().getBytes());
+        return str.toString();
     }
 
-    public static PrivateKey loadPrivFromFile(String filename)
-            throws Exception {
+    public static PrivateKey loadPrivFromFile(String filename) throws Exception {
         FileReader fr = new FileReader(new File(filename));
         PemObject spki = new PemReader(fr).readPemObject();
-        PrivateKey key = KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePrivate(new PKCS8EncodedKeySpec(spki.getContent()));
-        return key;
+        return KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePrivate(new PKCS8EncodedKeySpec(spki.getContent()));
     }
 
 
-    public static PublicKey loadPublicFromFile(String filename)
-            throws Exception {
+    public static PublicKey loadPublicFromFile(String filename) throws Exception {
         FileReader fr = new FileReader(new File(filename));
         PemObject spki = new PemReader(fr).readPemObject();
-        PublicKey key = KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePublic(new X509EncodedKeySpec(spki.getContent()));
-        return key;
+        return KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePublic(new X509EncodedKeySpec(spki.getContent()));
     }
 }
