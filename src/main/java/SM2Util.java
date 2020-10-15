@@ -1,3 +1,13 @@
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.security.*;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import javax.security.auth.x500.X500Principal;
+
 import org.bouncycastle.asn1.gm.GMNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
@@ -17,16 +27,6 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.bouncycastle.util.io.pem.PemWriter;
-
-import javax.security.auth.x500.X500Principal;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.security.*;
-import java.security.spec.ECGenParameterSpec;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 
 /**
  * @author SamYuan; 吴仙杰
@@ -112,7 +112,7 @@ public class SM2Util {
         return builder.build(signer);
     }
 
-    public static String PemFrom(PrivateKey privateKey) throws IOException {
+    public static String pemFrom(PrivateKey privateKey) throws IOException {
         PemObject pem = new PemObject("EC PRIVATE KEY", privateKey.getEncoded());
         StringWriter str = new StringWriter();
         PemWriter pemWriter = new PemWriter(str);
@@ -122,7 +122,7 @@ public class SM2Util {
         return str.toString();
     }
 
-    public static String PemFrom(PublicKey publicKey) throws IOException {
+    public static String pemFrom(PublicKey publicKey) throws IOException {
         PemObject pem = new PemObject("PUBLIC KEY", publicKey.getEncoded());
         StringWriter str = new StringWriter();
         PemWriter pemWriter = new PemWriter(str);
@@ -137,7 +137,7 @@ public class SM2Util {
      *
      * @param csr 证书请求对象
      */
-    public static String PemFrom(PKCS10CertificationRequest csr) throws IOException {
+    public static String pemFrom(PKCS10CertificationRequest csr) throws IOException {
         PemObject pem = new PemObject("CERTIFICATE REQUEST", csr.getEncoded());
         StringWriter str = new StringWriter();
         PemWriter pemWriter = new PemWriter(str);
