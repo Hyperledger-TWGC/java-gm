@@ -21,17 +21,17 @@ public class SM2UtilTest {
 
     public static void saveCSRInPem(KeyPair keyPair, X500Principal subject, String csrFile) throws IOException, OperatorCreationException {
         PKCS10CertificationRequest csr = SM2Util.generateCSR(keyPair, subject);
-        String CSRPem = SM2Util.PemFrom(csr);
-        Files.write(Paths.get(csrFile), CSRPem.getBytes());
+        String csrPem = SM2Util.pemFrom(csr);
+        Files.write(Paths.get(csrFile), csrPem.getBytes());
     }
 
     public static void savePemFormatKeyFile(PrivateKey privateKey, String filename) throws IOException {
-        String privateKeyPem = SM2Util.PemFrom(privateKey);
+        String privateKeyPem = SM2Util.pemFrom(privateKey);
         Files.write(Paths.get(filename), privateKeyPem.getBytes());
     }
 
-    public static void savePemFormatPubKeyFile(PublicKey publicKey, String filename) throws IOException{
-        String pubKeyPem = SM2Util.PemFrom(publicKey);
+    public static void savePemFormatPubKeyFile(PublicKey publicKey, String filename) throws IOException {
+        String pubKeyPem = SM2Util.pemFrom(publicKey);
         Files.write(Paths.get(filename), pubKeyPem.getBytes());
     }
 
