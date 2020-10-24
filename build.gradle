@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'checkstyle'
+    id 'maven-publish'
 }
 
 group 'twgc'
@@ -30,6 +31,23 @@ task checkstyle(type: Checkstyle) {
     classpath = files()
 }
 
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/SamYuan1990/java-gm")
+            credentials {
+                username = "SamYuan1990"
+                password = "xxxx"
+            }
+        }
+    }
+    publications {
+        gpr(MavenPublication) {
+            from(components.java)
+        }
+    }
+}
 
 dependencies {
     implementation group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.60'
