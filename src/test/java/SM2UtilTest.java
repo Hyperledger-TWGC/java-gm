@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -18,6 +19,7 @@ public class SM2UtilTest {
 
     static String pubFileName = "pub.pem";
     static String privFileName = "priv.pem";
+    static String reqFileName = "req.pem";
 
     public static void saveCSRInPem(KeyPair keyPair, X500Principal subject, String csrFile) throws IOException, OperatorCreationException {
         PKCS10CertificationRequest csr = SM2Util.generateCSR(keyPair, subject);
@@ -42,22 +44,32 @@ public class SM2UtilTest {
     @Before
     @Test
     public void generateFile() {
-        Throwable t = null;
-        try {
-            KeyPair keyPair = SM2Util.generatekeyPair();
-            saveKeyPairInPem(keyPair, pubFileName, privFileName);
-            saveCSRInPem(SM2Util.generatekeyPair(), new X500Principal("C=CN"), "req.pem");
-            PublicKey pubKey = SM2Util.loadPublicFromFile(pubFileName);
-            Assert.assertNotNull(pubKey);
-            Assert.assertEquals("Public key should be equal", keyPair.getPublic(), pubKey);
-            PrivateKey privKey = SM2Util.loadPrivFromFile(privFileName);
-            Assert.assertNotNull(privKey);
-            Assert.assertEquals("Priv key should be equal", keyPair.getPrivate(), privKey);
-        } catch (Exception e) {
-            t = e;
-            e.printStackTrace();
+        File pubFile = new File(pubFileName);
+        File privFile = new File(privFileName);
+        File reqFile = new File(reqFileName);
+        if (pubFile.exists()) {
+            System.out.println("Skip file generation deal to interact testing.");
+        } else {
+            Throwable t = null;
+            try {
+                KeyPair keyPair = SM2Util.generatekeyPair();
+                saveKeyPairInPem(keyPair, pubFileName, privFileName);
+                saveCSRInPem(SM2Util.generatekeyPair(), new X500Principal("C=CN"), reqFileName);
+                PublicKey pubKey = SM2Util.loadPublicFromFile(pubFileName);
+                Assert.assertNotNull(pubKey);
+                Assert.assertEquals("Public key should be equal", keyPair.getPublic(), pubKey);
+                PrivateKey privKey = SM2Util.loadPrivFromFile(privFileName);
+                Assert.assertNotNull(privKey);
+                Assert.assertEquals("Priv key should be equal", keyPair.getPrivate(), privKey);
+            } catch (Exception e) {
+                t = e;
+                e.printStackTrace();
+            }
+            Assert.assertNull(t);
         }
-        Assert.assertNull(t);
+        Assert.assertEquals(true, pubFile.exists());
+        Assert.assertEquals(true, privFile.exists());
+        Assert.assertEquals(true, reqFile.exists());
     }
     //encrypt and decrypt
     @Test
