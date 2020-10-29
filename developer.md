@@ -22,9 +22,13 @@ gradle clean test --dry-run
 ## 互操作测试
 请大家尽量在提交代码前在本地进行互操作认证，步骤如下：
 
-- gradle build 
+- gradle clean build 
 - cd ${workdir}
 - git clone https://github.com/Hyperledger-TWGC/fabric-gm-plugins
 - cp -f java-gm/*.pem ${workdir}/fabric-gm-plugins/interop/testdata 
-- cd ${workdir}fabric-gm-plugins/interop
+- cd ${workdir}/fabric-gm-plugins/interop
 - go test tjjavaImport_test.go
+- go test tjjaveExport_test.go
+- cp -f ${workdir}/fabric-gm-plugins/interop/testdata/*.pem java-gm
+- cd java-gm
+- gradle clean build
