@@ -1,14 +1,14 @@
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.io.*;
+import java.math.BigInteger;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import javax.security.auth.x500.X500Principal;
 
 import org.bouncycastle.asn1.gm.GMNamedCurves;
+import org.bouncycastle.asn1.sec.ECPrivateKey;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM2Engine;
@@ -18,6 +18,11 @@ import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.params.ParametersWithRandom;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jce.spec.ECParameterSpec;
+import org.bouncycastle.jce.spec.ECPublicKeySpec;
+import org.bouncycastle.math.ec.ECPoint;
+import org.bouncycastle.math.ec.FixedPointCombMultiplier;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -147,16 +152,26 @@ public class SM2Util {
         return str.toString();
     }
 
-    public static PrivateKey loadPrivFromFile(String filename) throws Exception {
+    public static PrivateKey loadPrivFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
         FileReader fr = new FileReader(new File(filename));
         PemObject spki = new PemReader(fr).readPemObject();
         return KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePrivate(new PKCS8EncodedKeySpec(spki.getContent()));
     }
 
 
-    public static PublicKey loadPublicFromFile(String filename) throws Exception {
+    public static PublicKey loadPublicFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
         FileReader fr = new FileReader(new File(filename));
         PemObject spki = new PemReader(fr).readPemObject();
         return KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePublic(new X509EncodedKeySpec(spki.getContent()));
+    }
+
+    public static PublicKey derivePublicFromPrivate(PrivateKey privateKey) {
+        BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
+        BigInteger d = localECPrivateKey.getD();
+        ECPoint ecpoint = new FixedPointCombMultiplier().multiply(GMNamedCurves.getByName(CURVE_NAME).getG(), d);
+        ECParameterSpec parameterSpec = new ECParameterSpec(x9ECParameters.getCurve(), x9ECParameters.getG(), x9ECParameters.getN());
+        ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(ecpoint, parameterSpec);
+        return new BCECPublicKey(privateKey.getAlgorithm(), pubKeySpec,
+                BouncyCastleProvider.CONFIGURATION);
     }
 }

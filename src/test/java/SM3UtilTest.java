@@ -1,3 +1,5 @@
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -7,10 +9,12 @@ import org.junit.Test;
  */
 public class SM3UtilTest {
 
+    static int randomData = 128;
+    static byte[] message = RandomStringUtils.random(randomData).getBytes();
+
     @Test
     public void hashAndVerify() {
-        byte[] srcData = "I'm using the SM3.".getBytes();
-        byte[] hashVal = SM3Util.hash(srcData);
-        System.out.println("Verify result: " + SM3Util.verify(srcData, hashVal));
+        byte[] hashVal = SM3Util.hash(message);
+        Assert.assertTrue(SM3Util.verify(message, hashVal));
     }
 }

@@ -1,5 +1,6 @@
 import java.nio.charset.Charset;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -14,10 +15,12 @@ public class SM4UtilTest {
     private static byte[] content16;
     private static byte[] key;
     private static byte[] iv;
+    static int randomData = 128;
+    static String message = RandomStringUtils.random(randomData);
 
     @BeforeClass
     public static void init() throws Exception {
-        content = "国密算法sm4测试使用中...".getBytes(Charset.forName("utf8"));
+        content = message.getBytes(Charset.forName("utf8"));
         content16 = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8};
         key = SM4Util.generateKey();
         iv = SM4Util.generateKey();
