@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.security.*;
 import javax.security.auth.x500.X500Principal;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Assert;
@@ -20,6 +21,12 @@ public class SM2UtilTest {
     static String pubFileName = "pub.pem";
     static String privFileName = "priv.pem";
     static String reqFileName = "req.pem";
+    static String exceptionHappened = "Exception happened";
+    static int randomData = 128;
+    static byte[] message = RandomStringUtils.random(randomData).getBytes();
+    PublicKey pubKey;
+    PrivateKey privKey;
+    KeyPair keyPair;
 
     public static void saveCSRInPem(KeyPair keyPair, X500Principal subject, String csrFile) throws IOException, OperatorCreationException {
         PKCS10CertificationRequest csr = SM2Util.generateCSR(keyPair, subject);
@@ -41,31 +48,32 @@ public class SM2UtilTest {
         savePemFormatKeyFile(keyPair.getPrivate(), privFileName);
         savePemFormatPubKeyFile(keyPair.getPublic(), pubFileName);
     }
+
     @Before
     @Test
     public void generateFile() {
         File pubFile = new File(pubFileName);
         File privFile = new File(privFileName);
         File reqFile = new File(reqFileName);
-        if (pubFile.exists()) {
-            System.out.println("Skip file generation deal to interact testing.");
-        } else {
-            Throwable t = null;
-            try {
-                KeyPair keyPair = SM2Util.generatekeyPair();
-                saveKeyPairInPem(keyPair, pubFileName, privFileName);
+        try {
+            if (!pubFile.exists()) {
+                this.keyPair = SM2Util.generatekeyPair();
+                saveKeyPairInPem(this.keyPair, pubFileName, privFileName);
                 saveCSRInPem(SM2Util.generatekeyPair(), new X500Principal("C=CN"), reqFileName);
-                PublicKey pubKey = SM2Util.loadPublicFromFile(pubFileName);
-                Assert.assertNotNull(pubKey);
-                Assert.assertEquals("Public key should be equal", keyPair.getPublic(), pubKey);
-                PrivateKey privKey = SM2Util.loadPrivFromFile(privFileName);
-                Assert.assertNotNull(privKey);
-                Assert.assertEquals("Priv key should be equal", keyPair.getPrivate(), privKey);
-            } catch (Exception e) {
-                t = e;
-                e.printStackTrace();
+            } else {
+                System.out.println("Skip file generation deal to interact testing.");
             }
-            Assert.assertNull(t);
+            this.pubKey = SM2Util.loadPublicFromFile(pubFileName);
+            Assert.assertNotNull(this.pubKey);
+            this.privKey = SM2Util.loadPrivFromFile(privFileName);
+            Assert.assertNotNull(this.privKey);
+            if (!pubFile.exists()) {
+                Assert.assertEquals("Public key should be equal", this.keyPair.getPublic(), this.pubKey);
+                Assert.assertEquals("Priv key should be equal", this.keyPair.getPrivate(), this.privKey);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(exceptionHappened);
         }
         Assert.assertEquals(true, pubFile.exists());
         Assert.assertEquals(true, privFile.exists());
@@ -74,37 +82,39 @@ public class SM2UtilTest {
     //encrypt and decrypt
     @Test
     public void encryptAndDecrypt() {
-        Throwable t = null;
         try {
-            PublicKey pubKey = SM2Util.loadPublicFromFile(pubFileName);
-            PrivateKey privKey = SM2Util.loadPrivFromFile(privFileName);
-            byte[] message = "hello,world!".getBytes();
-            byte[] encrypted = SM2Util.encrypt(pubKey, message);
-            byte[] rs = SM2Util.decrypt(privKey, encrypted);
+            byte[] encrypted = SM2Util.encrypt(this.pubKey, message);
+            byte[] rs = SM2Util.decrypt(this.privKey, encrypted);
             Assert.assertEquals(new String(message), new String(rs));
+            byte[] encrypted2 = SM2Util.encrypt(this.pubKey, "msg".getBytes());
+            rs = SM2Util.decrypt(this.privKey, encrypted2);
+            Assert.assertNotEquals(new String(message), new String(rs));
         } catch (Exception e) {
-            t = e;
             e.printStackTrace();
+            Assert.fail(exceptionHappened);
         }
-        Assert.assertNull(t);
     }
 
     //sign and verify
     @Test
     public void signAndverify() {
-        Throwable t = null;
         try {
-            PublicKey pubKey = SM2Util.loadPublicFromFile(pubFileName);
-            PrivateKey privKey = SM2Util.loadPrivFromFile(privFileName);
             Signature signature = SM2Util.generateSignature();
-            byte[] message = "hello,world!".getBytes();
-            byte[] signbyte = SM2Util.sign(signature, privKey, message);
-            boolean rs = SM2Util.verify(signature, pubKey, message, signbyte);
+            byte[] signbyte = SM2Util.sign(signature, this.privKey, message);
+            boolean rs = SM2Util.verify(signature, this.pubKey, message, signbyte);
             Assert.assertTrue(rs);
+            rs = SM2Util.verify(signature, this.pubKey, message, message);
+            Assert.assertFalse(rs);
         } catch (Exception e) {
-            t = e;
             e.printStackTrace();
+            Assert.fail(exceptionHappened);
         }
-        Assert.assertEquals(null, t);
+    }
+
+    //private key Derive from private key
+    @Test
+    public void derivePublicFromPrivate() {
+        PublicKey deriveKey = SM2Util.derivePublicFromPrivate(this.privKey);
+        Assert.assertEquals("key should be same", this.pubKey, deriveKey);
     }
 }
