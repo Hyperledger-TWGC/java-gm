@@ -8,7 +8,8 @@ import java.security.spec.X509EncodedKeySpec;
 import javax.security.auth.x500.X500Principal;
 
 import org.bouncycastle.asn1.gm.GMNamedCurves;
-import org.bouncycastle.asn1.sec.ECPrivateKey;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM2Engine;
@@ -23,12 +24,20 @@ import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.math.ec.FixedPointCombMultiplier;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.PKCS8Generator;
+import org.bouncycastle.openssl.jcajce.*;
 import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.InputDecryptorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.OutputEncryptor;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.PKCS8EncryptedPrivateKeyInfo;
+import org.bouncycastle.pkcs.PKCSException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.bouncycastle.util.io.pem.PemGenerationException;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.bouncycastle.util.io.pem.PemWriter;
@@ -117,15 +126,23 @@ public class SM2Util {
         return builder.build(signer);
     }
 
-    public static String pemFrom(PrivateKey privateKey) throws IOException {
-        PemObject pem = new PemObject("EC PRIVATE KEY", privateKey.getEncoded());
-        StringWriter str = new StringWriter();
-        PemWriter pemWriter = new PemWriter(str);
-        pemWriter.writeObject(pem);
+    public static String pemFrom(PrivateKey privateKey, String password) throws OperatorCreationException, IOException {
+        OutputEncryptor encryptor = null;
+        if (password != null && password.length() > 0) {
+            encryptor = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC)
+                    .setProvider(BC_VALUE)
+                    .setRandom(new SecureRandom())
+                    .setPasssword(password.toCharArray())
+                    .build();
+        }
+        PKCS8Generator generator = new JcaPKCS8Generator(privateKey, encryptor);
+        StringWriter stringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter);
+        pemWriter.writeObject(generator);
         pemWriter.close();
-        str.close();
-        return str.toString();
+        return stringWriter.toString();
     }
+
 
     public static String pemFrom(PublicKey publicKey) throws IOException {
         PemObject pem = new PemObject("PUBLIC KEY", publicKey.getEncoded());
@@ -152,10 +169,25 @@ public class SM2Util {
         return str.toString();
     }
 
-    public static PrivateKey loadPrivFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public static PrivateKey loadPrivFromFile(String filename, String password) throws IOException, OperatorCreationException, PKCSException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
         FileReader fr = new FileReader(new File(filename));
-        PemObject spki = new PemReader(fr).readPemObject();
-        return KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePrivate(new PKCS8EncodedKeySpec(spki.getContent()));
+        PEMParser pemReader = new PEMParser(fr);
+        Object obj = pemReader.readObject();
+        pemReader.close();
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_VALUE);
+        if (password != null && password.length() > 0) {
+            if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
+                PKCS8EncryptedPrivateKeyInfo epkInfo = (PKCS8EncryptedPrivateKeyInfo) obj;
+                InputDecryptorProvider decryptor = new JceOpenSSLPKCS8DecryptorProviderBuilder()
+                        .setProvider(BC_VALUE)
+                        .build(password.toCharArray());
+                PrivateKeyInfo pkInfo = epkInfo.decryptPrivateKeyInfo(decryptor);
+                return converter.getPrivateKey(pkInfo);
+            }
+        } else {
+            return converter.getPrivateKey((PrivateKeyInfo) obj);
+        }
+        return null;
     }
 
 

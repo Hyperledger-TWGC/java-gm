@@ -3,6 +3,4 @@ java-gm.iml
 .idea
 .vscode
 build
-priv.pem
-pub.pem
-req.pem
+*.pem

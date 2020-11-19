@@ -20,8 +20,11 @@ public class SM2UtilTest {
 
     static String pubFileName = "pub.pem";
     static String privFileName = "priv.pem";
+    static String encryptedprivFileName = "encryptedpriv.pem";
     static String reqFileName = "req.pem";
     static String exceptionHappened = "Exception happened";
+    static String keyEqualHint = "key should be equal";
+    static String passwd = RandomStringUtils.random(18);
     static int randomData = 128;
     static byte[] message = RandomStringUtils.random(randomData).getBytes();
     PublicKey pubKey;
@@ -34,8 +37,8 @@ public class SM2UtilTest {
         Files.write(Paths.get(csrFile), csrPem.getBytes());
     }
 
-    public static void savePemFormatKeyFile(PrivateKey privateKey, String filename) throws IOException {
-        String privateKeyPem = SM2Util.pemFrom(privateKey);
+    public static void savePemFormatKeyFile(PrivateKey privateKey, String filename) throws IOException, OperatorCreationException {
+        String privateKeyPem = SM2Util.pemFrom(privateKey, "");
         Files.write(Paths.get(filename), privateKeyPem.getBytes());
     }
 
@@ -44,7 +47,7 @@ public class SM2UtilTest {
         Files.write(Paths.get(filename), pubKeyPem.getBytes());
     }
 
-    public static void saveKeyPairInPem(KeyPair keyPair, String pubFileName, String privFileName) throws IOException {
+    public static void saveKeyPairInPem(KeyPair keyPair, String pubFileName, String privFileName) throws IOException, OperatorCreationException {
         savePemFormatKeyFile(keyPair.getPrivate(), privFileName);
         savePemFormatPubKeyFile(keyPair.getPublic(), pubFileName);
     }
@@ -65,11 +68,11 @@ public class SM2UtilTest {
             }
             this.pubKey = SM2Util.loadPublicFromFile(pubFileName);
             Assert.assertNotNull(this.pubKey);
-            this.privKey = SM2Util.loadPrivFromFile(privFileName);
+            this.privKey = SM2Util.loadPrivFromFile(privFileName, "");
             Assert.assertNotNull(this.privKey);
             if (!pubFile.exists()) {
-                Assert.assertEquals("Public key should be equal", this.keyPair.getPublic(), this.pubKey);
-                Assert.assertEquals("Priv key should be equal", this.keyPair.getPrivate(), this.privKey);
+                Assert.assertEquals(keyEqualHint, this.keyPair.getPublic(), this.pubKey);
+                Assert.assertEquals(keyEqualHint, this.keyPair.getPrivate(), this.privKey);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -115,6 +118,23 @@ public class SM2UtilTest {
     @Test
     public void derivePublicFromPrivate() {
         PublicKey deriveKey = SM2Util.derivePublicFromPrivate(this.privKey);
-        Assert.assertEquals("key should be same", this.pubKey, deriveKey);
+        Assert.assertEquals(keyEqualHint, this.pubKey, deriveKey);
     }
+
+    //key with password
+    @Test
+    public void keyPairWithPasswd() {
+        try {
+            KeyPair keyPair = SM2Util.generatekeyPair();
+            String privateKeyPem = SM2Util.pemFrom(keyPair.getPrivate(), passwd);
+            Files.write(Paths.get(encryptedprivFileName), privateKeyPem.getBytes());
+            PrivateKey key = SM2Util.loadPrivFromFile(encryptedprivFileName, passwd);
+            Assert.assertNotNull(key);
+            Assert.assertEquals(keyEqualHint, keyPair.getPrivate(), key);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(exceptionHappened);
+        }
+    }
+
 }
