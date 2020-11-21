@@ -2,19 +2,32 @@
 # Build your Java project and run tests with Gradle using a Gradle wrapper script.
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/java
+trigger:
+  - master
 
 pool:
   vmImage: 'ubuntu-latest'
 
-steps:
-- task: Gradle@2
-  inputs:
-    workingDirectory: ''
-    gradleWrapperFile: 'gradlew'
-    gradleOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.8'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/TEST-*.xml'
-    tasks: 'build'
+variables:
+  - group: TWGC
+
+jobs:
+  - job: ut
+    steps:
+      - task: Gradle@2
+        inputs:
+          workingDirectory: ''
+          gradleWrapperFile: 'gradlew'
+          gradleOptions: '-Xmx3072m'
+          javaHomeOption: 'JDKVersion'
+          jdkVersionOption: '1.8'
+          jdkArchitectureOption: 'x64'
+          publishJUnitResults: true
+          testResultsFiles: '**/TEST-*.xml'
+          tasks: 'build'
+
+  - job: releaseJar
+    dependsOn:
+      - ut
+    steps:
+      - script: ./releaseJar.sh $BUILD_SOURCEBRANCH $(GITHUB_TOKEN_DAVIDKHALA) $(repo) $(username)
