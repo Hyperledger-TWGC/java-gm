@@ -1,8 +1,8 @@
-import org.bouncycastle.crypto.digests.SM3Digest;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import java.security.Security;
 import java.util.Arrays;
+
+import org.bouncycastle.crypto.digests.SM3Digest;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 /**
  * @author Sean
