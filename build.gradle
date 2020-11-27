@@ -35,10 +35,10 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = System.getProperty("repo")
+            url = uri("https://maven.pkg.github.com/Hyperledger-TWGC/java-gm")
             credentials {
-                username = System.getProperty("username")
-                password = System.getProperty("token")
+                username = "davidkhala"
+                password = System.getenv("GITHUB_TOKEN_DAVIDKHALA")
             }
         }
     }

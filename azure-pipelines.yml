@@ -30,4 +30,4 @@ jobs:
     dependsOn:
       - ut
     steps:
-      - script: ./releaseJar.sh $BUILD_SOURCEBRANCH $(GITHUB_TOKEN_DAVIDKHALA) $(repo) $(username)
+      - script: ./releaseJar.sh $BUILD_SOURCEBRANCH
