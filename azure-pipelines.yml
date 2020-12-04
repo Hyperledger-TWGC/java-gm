@@ -26,6 +26,10 @@ jobs:
           testResultsFiles: '**/TEST-*.xml'
           tasks: 'build'
 
+  - job: Testing
+    steps:
+      - script: echo $(TESTING)
+
   - job: releaseJar
     dependsOn:
       - ut
@@ -33,7 +37,7 @@ jobs:
       - script: |
           TAGPATTERN="refs/tags/.*"
           if [[ "$BUILD_SOURCEBRANCH" =~ $TAGPATTERN ]]; then
-          	gradle publish
+          	gradle publish -DGITHUB_TOKEN_DAVIDKHALA=$(GITHUB_TOKEN_DAVIDKHALA)
           else
           	echo "skip as not release tag! $BUILD_SOURCEBRANCH"
           fi
