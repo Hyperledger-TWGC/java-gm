@@ -63,7 +63,7 @@ public class SM2Util {
 
     private static final String BC_VALUE = "BC";
     private static final String EC_VALUE = "EC";
-    private static final String SM3SM2_VALUE = "SM3withSM2";
+    private static final String SM3SM2_VALUE = "SM3WITHSM2";
     private static final String CURVE_NAME = "sm2p256v1";
     private static X9ECParameters x9ECParameters = GMNamedCurves.getByName(CURVE_NAME);
     private static ECDomainParameters ecDomainParameters = new ECDomainParameters(x9ECParameters.getCurve(), x9ECParameters.getG(), x9ECParameters.getN());
