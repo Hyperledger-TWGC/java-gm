@@ -33,7 +33,6 @@ jobs:
       - script: |
           TAGPATTERN="refs/tags/.*"
           if [[ "$BUILD_SOURCEBRANCH" =~ $TAGPATTERN ]]; then
-            export GITHUB_TOKEN_DAVIDKHALA = $(GITHUB_TOKEN_DAVIDKHALA)
           	gradle publish
           else
           	echo "skip as not release tag! $BUILD_SOURCEBRANCH"
