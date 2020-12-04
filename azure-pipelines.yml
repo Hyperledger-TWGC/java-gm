@@ -25,11 +25,6 @@ jobs:
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
           tasks: 'build'
-
-  - job: Testing
-    steps:
-      - script: echo $(TESTING)
-
   - job: releaseJar
     dependsOn:
       - ut
