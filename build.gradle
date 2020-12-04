@@ -38,7 +38,7 @@ publishing {
             url = uri("https://maven.pkg.github.com/Hyperledger-TWGC/java-gm")
             credentials {
                 username = "davidkhala"
-                password = System.getenv("GITHUB_TOKEN_DAVIDKHALA")
+                password = System.getProperty("GITHUB_TOKEN_DAVIDKHALA")
             }
         }
     }
