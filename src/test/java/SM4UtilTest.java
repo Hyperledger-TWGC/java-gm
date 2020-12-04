@@ -1,6 +1,5 @@
-import java.nio.charset.Charset;
-
 import org.apache.commons.lang3.RandomStringUtils;
+import org.bouncycastle.pqc.math.linearalgebra.ByteUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -15,13 +14,13 @@ public class SM4UtilTest {
     private static byte[] content16;
     private static byte[] key;
     private static byte[] iv;
-    static int randomData = 128;
-    static String message = RandomStringUtils.random(randomData);
 
     @BeforeClass
     public static void init() throws Exception {
-        content = message.getBytes(Charset.forName("utf8"));
-        content16 = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8};
+//        content = "国密算法sm4测试使用中...".getBytes(StandardCharsets.UTF_8);
+        content = RandomStringUtils.random(128).getBytes();
+        // NoPadding模式只能对16整数倍的内容进行加解密
+        content16 = "I get your means".getBytes();
         key = SM4Util.generateKey();
         iv = SM4Util.generateKey();
     }
@@ -34,7 +33,7 @@ public class SM4UtilTest {
         // 解密
         byte[] c = SM4Util.decrypt(v, key, SM4Util.SM4ModeAndPaddingEnum.SM4_ECB_NoPadding, null);
 
-        System.out.println("解密内容：" + new String(c, Charset.forName("utf8")));
+        System.out.println("解密内容：" + new String(c));
         Assert.assertArrayEquals(c, content16);
     }
 
@@ -46,7 +45,7 @@ public class SM4UtilTest {
         // 解密
         byte[] c = SM4Util.decrypt(v, key, SM4Util.SM4ModeAndPaddingEnum.SM4_ECB_PKCS5Padding, null);
 
-        System.out.println("解密内容：" + new String(c, Charset.forName("utf8")));
+        System.out.println("解密内容：" + new String(c));
         Assert.assertArrayEquals(c, content);
     }
 
@@ -58,7 +57,7 @@ public class SM4UtilTest {
         // 解密
         byte[] c = SM4Util.decrypt(v, key, SM4Util.SM4ModeAndPaddingEnum.SM4_ECB_PKCS7Padding, null);
 
-        System.out.println("解密内容：" + new String(c, Charset.forName("utf8")));
+        System.out.println("解密内容：" + new String(c));
         Assert.assertArrayEquals(c, content);
     }
 
@@ -70,7 +69,7 @@ public class SM4UtilTest {
         // 解密
         byte[] c = SM4Util.decrypt(v, key, SM4Util.SM4ModeAndPaddingEnum.SM4_CBC_NoPadding, iv);
 
-        System.out.println("解密内容：" + new String(c, Charset.forName("utf8")));
+        System.out.println("解密内容：" + new String(c));
         Assert.assertArrayEquals(c, content16);
     }
 
@@ -82,7 +81,7 @@ public class SM4UtilTest {
         // 解密
         byte[] c = SM4Util.decrypt(v, key, SM4Util.SM4ModeAndPaddingEnum.SM4_CBC_PKCS5Padding, iv);
 
-        System.out.println("解密内容：" + new String(c, Charset.forName("utf8")));
+        System.out.println("解密内容：" + new String(c));
         Assert.assertArrayEquals(c, content);
     }
 
@@ -94,7 +93,24 @@ public class SM4UtilTest {
         // 解密
         byte[] c = SM4Util.decrypt(v, key, SM4Util.SM4ModeAndPaddingEnum.SM4_CBC_PKCS7Padding, iv);
 
-        System.out.println("解密内容：" + new String(c, Charset.forName("utf8")));
+        System.out.println("解密内容：" + new String(c));
         Assert.assertArrayEquals(c, content);
+    }
+
+    @Test
+    public void sm4Interaction() throws Exception {
+        byte[] key = "1234567890abcdef".getBytes();
+        byte[] iv = "ilovegolangjava.".getBytes();
+
+        //解密校验
+        String cryptText = "8781d981f7ffd6c1a780f8b213f596aa535c8bb6389923f8329f79a1707966e2";
+        byte[] b = SM4Util.decrypt(ByteUtils.fromHexString(cryptText), key, SM4Util.SM4ModeAndPaddingEnum.SM4_CBC_PKCS7Padding, iv);
+        Assert.assertEquals("I am encrypted by golang SM4.", new String(b));
+
+        //加密校验，SM4加密以下明文以供Go SM4进行解密验证
+        byte[] msg = "I am encrypted by java SM4.".getBytes();
+        byte[] cryptData = SM4Util.encrypt(msg, key, SM4Util.SM4ModeAndPaddingEnum.SM4_CBC_PKCS7Padding, iv);
+        String cryptStr = ByteUtils.toHexString(cryptData);
+        System.out.println(cryptStr);
     }
 }
