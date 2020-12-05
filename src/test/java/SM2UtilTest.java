@@ -2,10 +2,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.KeyPair;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Signature;
+import java.security.*;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -106,6 +103,26 @@ public class SM2UtilTest {
     public void signAndverify() {
         try {
             Signature signature = SM2Util.generateSignature();
+            byte[] signbyte = SM2Util.sign(signature, this.privKey, message);
+            boolean rs = SM2Util.verify(signature, this.pubKey, message, signbyte);
+            Assert.assertTrue(rs);
+            rs = SM2Util.verify(signature, this.pubKey, message, message);
+            Assert.assertFalse(rs);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(exceptionHappened);
+        }
+    }
+
+    //sign and verify
+    //ref https://github.com/bcgit/bc-java/blob/r1rv67/prov/src/main/java/org/bouncycastle/jcajce/provider/asymmetric/GM.java
+    @Test
+    public void signAndverifyHash256Sample() {
+        try {
+            if (Security.getProvider("BC") == null) {
+                Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+            }
+            Signature signature = Signature.getInstance("SHA256WITHSM2", "BC");
             byte[] signbyte = SM2Util.sign(signature, this.privKey, message);
             boolean rs = SM2Util.verify(signature, this.pubKey, message, signbyte);
             Assert.assertTrue(rs);
