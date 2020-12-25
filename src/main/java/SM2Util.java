@@ -61,7 +61,8 @@ public class SM2Util {
 
     }
 
-    private static final String BC_VALUE = "BC";
+    private static final SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C3C2);
+    private static Signature signature;
     private static final String EC_VALUE = "EC";
     private static final String SM3SM2_VALUE = "SM3WITHSM2";
     private static final String CURVE_NAME = "sm2p256v1";
@@ -69,8 +70,15 @@ public class SM2Util {
     private static ECDomainParameters ecDomainParameters = new ECDomainParameters(x9ECParameters.getCurve(), x9ECParameters.getG(), x9ECParameters.getN());
 
     static {
-        if (Security.getProvider(BC_VALUE) == null) {
-            Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+        try {
+            signature = Signature.getInstance(SM3SM2_VALUE, BouncyCastleProvider.PROVIDER_NAME);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchProviderException e) {
+            e.printStackTrace();
         }
     }
 
@@ -82,30 +90,39 @@ public class SM2Util {
      * @throws InvalidAlgorithmParameterException 当采用的 ECC 算法不适用于该密钥对生成器时
      */
     public static KeyPair generatekeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance(EC_VALUE, BC_VALUE);
+        KeyPairGenerator generator = KeyPairGenerator.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME);
         generator.initialize(new ECGenParameterSpec(CURVE_NAME));
         return generator.generateKeyPair();
     }
 
-    // currently only support for SM3SM2_VALUE for hash
-    public static Signature generateSignature() throws NoSuchAlgorithmException, NoSuchProviderException {
-        return Signature.getInstance(SM3SM2_VALUE, BC_VALUE);
+    public static byte[] encrypt(PublicKey publicKey, byte[] message) throws InvalidCipherTextException {
+        return encrypt(publicKey, message, sm2Engine);
     }
 
-    public static byte[] encrypt(PublicKey publicKey, byte[] message) throws InvalidCipherTextException {
+    public static byte[] decrypt(PrivateKey privateKey, byte[] message) throws InvalidCipherTextException {
+        return decrypt(privateKey, message, sm2Engine);
+    }
+
+    public static byte[] encrypt(PublicKey publicKey, byte[] message, SM2Engine sm2Engine) throws InvalidCipherTextException {
         BCECPublicKey localECPublicKey = (BCECPublicKey) publicKey;
         ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(localECPublicKey.getQ(), ecDomainParameters);
-        SM2Engine sm2Engine = new SM2Engine();
         sm2Engine.init(true, new ParametersWithRandom(ecPublicKeyParameters, new SecureRandom()));
         return sm2Engine.processBlock(message, 0, message.length);
     }
 
-    public static byte[] decrypt(PrivateKey privateKey, byte[] message) throws InvalidCipherTextException {
+    public static byte[] decrypt(PrivateKey privateKey, byte[] message, SM2Engine sm2Engine) throws InvalidCipherTextException {
         BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
         ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(localECPrivateKey.getD(), ecDomainParameters);
-        SM2Engine sm2Engine = new SM2Engine();
         sm2Engine.init(false, ecPrivateKeyParameters);
         return sm2Engine.processBlock(message, 0, message.length);
+    }
+
+    public static byte[] sign(PrivateKey privateKey, byte[] message) throws SignatureException, InvalidKeyException {
+        return sign(signature, privateKey, message);
+    }
+
+    public static boolean verify(PublicKey publicKey, byte[] message, byte[] sigBytes) throws InvalidKeyException, SignatureException {
+        return verify(signature, publicKey, message, sigBytes);
     }
 
     public static byte[] sign(Signature signature, PrivateKey privateKey, byte[] message) throws SignatureException, InvalidKeyException {
@@ -130,7 +147,7 @@ public class SM2Util {
         OutputEncryptor encryptor = null;
         if (password != null && password.length() > 0) {
             encryptor = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC)
-                    .setProvider(BC_VALUE)
+                    .setProvider(BouncyCastleProvider.PROVIDER_NAME)
                     .setRandom(new SecureRandom())
                     .setPasssword(password.toCharArray())
                     .build();
@@ -174,12 +191,12 @@ public class SM2Util {
         PEMParser pemReader = new PEMParser(fr);
         Object obj = pemReader.readObject();
         pemReader.close();
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_VALUE);
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME);
         if (password != null && password.length() > 0) {
             if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
                 PKCS8EncryptedPrivateKeyInfo epkInfo = (PKCS8EncryptedPrivateKeyInfo) obj;
                 InputDecryptorProvider decryptor = new JceOpenSSLPKCS8DecryptorProviderBuilder()
-                        .setProvider(BC_VALUE)
+                        .setProvider(BouncyCastleProvider.PROVIDER_NAME)
                         .build(password.toCharArray());
                 PrivateKeyInfo pkInfo = epkInfo.decryptPrivateKeyInfo(decryptor);
                 return converter.getPrivateKey(pkInfo);
@@ -194,7 +211,7 @@ public class SM2Util {
     public static PublicKey loadPublicFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
         FileReader fr = new FileReader(new File(filename));
         PemObject spki = new PemReader(fr).readPemObject();
-        return KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePublic(new X509EncodedKeySpec(spki.getContent()));
+        return KeyFactory.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
     }
 
     public static PublicKey derivePublicFromPrivate(PrivateKey privateKey) {

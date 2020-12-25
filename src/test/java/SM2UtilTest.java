@@ -6,6 +6,7 @@ import java.security.*;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.bouncycastle.crypto.engines.SM2Engine;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Assert;
@@ -82,9 +83,10 @@ public class SM2UtilTest {
         Assert.assertEquals(true, privFile.exists());
         Assert.assertEquals(true, reqFile.exists());
     }
+
     //encrypt and decrypt
     @Test
-    public void encryptAndDecrypt() {
+    public void encryptAndDecryptC1C3C2() {
         try {
             byte[] encrypted = SM2Util.encrypt(this.pubKey, message);
             byte[] rs = SM2Util.decrypt(this.privKey, encrypted);
@@ -98,15 +100,31 @@ public class SM2UtilTest {
         }
     }
 
+    //encrypt and decrypt
+    @Test
+    public void encryptAndDecryptC1C2C3() {
+        try {
+            SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C2C3);
+            byte[] encrypted = SM2Util.encrypt(this.pubKey, message, sm2Engine);
+            byte[] rs = SM2Util.decrypt(this.privKey, encrypted, sm2Engine);
+            Assert.assertEquals(new String(message), new String(rs));
+            byte[] encrypted2 = SM2Util.encrypt(this.pubKey, "msg".getBytes(), sm2Engine);
+            rs = SM2Util.decrypt(this.privKey, encrypted2, sm2Engine);
+            Assert.assertNotEquals(new String(message), new String(rs));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(exceptionHappened);
+        }
+    }
+
     //sign and verify
     @Test
     public void signAndverify() {
         try {
-            Signature signature = SM2Util.generateSignature();
-            byte[] signbyte = SM2Util.sign(signature, this.privKey, message);
-            boolean rs = SM2Util.verify(signature, this.pubKey, message, signbyte);
+            byte[] signbyte = SM2Util.sign(this.privKey, message);
+            boolean rs = SM2Util.verify(this.pubKey, message, signbyte);
             Assert.assertTrue(rs);
-            rs = SM2Util.verify(signature, this.pubKey, message, message);
+            rs = SM2Util.verify(this.pubKey, message, message);
             Assert.assertFalse(rs);
         } catch (Exception e) {
             e.printStackTrace();
