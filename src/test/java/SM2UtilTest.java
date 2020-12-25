@@ -6,6 +6,7 @@ import java.security.*;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.bouncycastle.crypto.engines.SM2Engine;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Assert;
@@ -60,9 +61,10 @@ public class SM2UtilTest {
         File reqFile = new File(reqFileName);
         try {
             if (!pubFile.exists()) {
-                this.keyPair = SM2Util.generatekeyPair();
+                SM2Util instance = new SM2Util();
+                this.keyPair = instance.generatekeyPair();
                 saveKeyPairInPem(this.keyPair, pubFileName, privFileName);
-                saveCSRInPem(SM2Util.generatekeyPair(), new X500Principal("C=CN"), reqFileName);
+                saveCSRInPem(this.keyPair, new X500Principal("C=CN"), reqFileName);
             } else {
                 System.out.println("Skip file generation deal to interact testing.");
             }
@@ -82,15 +84,35 @@ public class SM2UtilTest {
         Assert.assertEquals(true, privFile.exists());
         Assert.assertEquals(true, reqFile.exists());
     }
+
     //encrypt and decrypt
     @Test
-    public void encryptAndDecrypt() {
+    public void encryptAndDecryptC1C3C2() {
         try {
-            byte[] encrypted = SM2Util.encrypt(this.pubKey, message);
-            byte[] rs = SM2Util.decrypt(this.privKey, encrypted);
+            SM2Util instance = new SM2Util();
+            byte[] encrypted = instance.encrypt(this.pubKey, message);
+            byte[] rs = instance.decrypt(this.privKey, encrypted);
             Assert.assertEquals(new String(message), new String(rs));
-            byte[] encrypted2 = SM2Util.encrypt(this.pubKey, "msg".getBytes());
-            rs = SM2Util.decrypt(this.privKey, encrypted2);
+            byte[] encrypted2 = instance.encrypt(this.pubKey, "msg".getBytes());
+            rs = instance.decrypt(this.privKey, encrypted2);
+            Assert.assertNotEquals(new String(message), new String(rs));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(exceptionHappened);
+        }
+    }
+
+    //encrypt and decrypt
+    @Test
+    public void encryptAndDecryptC1C2C3() {
+        try {
+            SM2Util instance = new SM2Util();
+            instance.setSm2Engine(new SM2Engine(SM2Engine.Mode.C1C2C3));
+            byte[] encrypted = instance.encrypt(this.pubKey, message);
+            byte[] rs = instance.decrypt(this.privKey, encrypted);
+            Assert.assertEquals(new String(message), new String(rs));
+            byte[] encrypted2 = instance.encrypt(this.pubKey, "msg".getBytes());
+            rs = instance.decrypt(this.privKey, encrypted2);
             Assert.assertNotEquals(new String(message), new String(rs));
         } catch (Exception e) {
             e.printStackTrace();
@@ -102,11 +124,11 @@ public class SM2UtilTest {
     @Test
     public void signAndverify() {
         try {
-            Signature signature = SM2Util.generateSignature();
-            byte[] signbyte = SM2Util.sign(signature, this.privKey, message);
-            boolean rs = SM2Util.verify(signature, this.pubKey, message, signbyte);
+            SM2Util instance = new SM2Util();
+            byte[] signbyte = instance.sign(this.privKey, message);
+            boolean rs = instance.verify(this.pubKey, message, signbyte);
             Assert.assertTrue(rs);
-            rs = SM2Util.verify(signature, this.pubKey, message, message);
+            rs = instance.verify(this.pubKey, message, message);
             Assert.assertFalse(rs);
         } catch (Exception e) {
             e.printStackTrace();
@@ -123,10 +145,12 @@ public class SM2UtilTest {
                 Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
             }
             Signature signature = Signature.getInstance("SHA256WITHSM2", "BC");
-            byte[] signbyte = SM2Util.sign(signature, this.privKey, message);
-            boolean rs = SM2Util.verify(signature, this.pubKey, message, signbyte);
+            SM2Util instance = new SM2Util();
+            instance.setSignature(signature);
+            byte[] signbyte = instance.sign(this.privKey, message);
+            boolean rs = instance.verify(this.pubKey, message, signbyte);
             Assert.assertTrue(rs);
-            rs = SM2Util.verify(signature, this.pubKey, message, message);
+            rs = instance.verify(this.pubKey, message, message);
             Assert.assertFalse(rs);
         } catch (Exception e) {
             e.printStackTrace();
@@ -145,7 +169,8 @@ public class SM2UtilTest {
     @Test
     public void keyPairWithPasswd() {
         try {
-            KeyPair keyPair = SM2Util.generatekeyPair();
+            SM2Util instance = new SM2Util();
+            KeyPair keyPair = instance.generatekeyPair();
             String privateKeyPem = SM2Util.pemFrom(keyPair.getPrivate(), passwd);
             Files.write(Paths.get(encryptedprivFileName), privateKeyPem.getBytes());
             PrivateKey key = SM2Util.loadPrivFromFile(encryptedprivFileName, passwd);
