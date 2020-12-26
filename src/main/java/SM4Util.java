@@ -2,8 +2,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.util.EnumMap;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -17,6 +19,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 public class SM4Util {
 
     private static String algorithmName = "SM4";
+    private static EnumMap<SM4ModeAndPaddingEnum, Cipher> sm4ModeAndPaddingEnumCipherEnumMap = new EnumMap<>(SM4ModeAndPaddingEnum.class);
 
     private SM4Util() {
 
@@ -24,6 +27,19 @@ public class SM4Util {
 
     static {
         Security.addProvider(new BouncyCastleProvider());
+        for (SM4ModeAndPaddingEnum mode:SM4ModeAndPaddingEnum.values()) {
+            Cipher cipher = null;
+            try {
+                cipher = Cipher.getInstance(mode.getName(), BouncyCastleProvider.PROVIDER_NAME);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (NoSuchProviderException e) {
+                e.printStackTrace();
+            } catch (NoSuchPaddingException e) {
+                e.printStackTrace();
+            }
+            sm4ModeAndPaddingEnumCipherEnumMap.put(mode, cipher);
+        }
     }
 
     enum SM4ModeAndPaddingEnum {
@@ -56,7 +72,13 @@ public class SM4Util {
      * @throws Exception
      */
     public static byte[] encrypt(byte[] input, byte[] key, SM4ModeAndPaddingEnum sm4ModeAndPaddingEnum, byte[] iv) throws Exception {
-        return sm4(input, key, sm4ModeAndPaddingEnum, iv, Cipher.ENCRYPT_MODE);
+        IvParameterSpec ivParameterSpec = null;
+        if (iv != null) {
+            ivParameterSpec = new IvParameterSpec(iv);
+        }
+        Cipher cipher = sm4ModeAndPaddingEnumCipherEnumMap.get(sm4ModeAndPaddingEnum);
+        SecretKeySpec sm4Key = new SecretKeySpec(key, algorithmName);
+        return sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.ENCRYPT_MODE);
     }
 
     /**
@@ -70,33 +92,32 @@ public class SM4Util {
      * @throws Exception
      */
     public static byte[] decrypt(byte[] input, byte[] key, SM4ModeAndPaddingEnum sm4ModeAndPaddingEnum, byte[] iv) throws Exception {
-        return sm4(input, key, sm4ModeAndPaddingEnum, iv, Cipher.DECRYPT_MODE);
+        IvParameterSpec ivParameterSpec = null;
+        if (iv != null) {
+            ivParameterSpec = new IvParameterSpec(iv);
+        }
+        Cipher cipher = sm4ModeAndPaddingEnumCipherEnumMap.get(sm4ModeAndPaddingEnum);
+        SecretKeySpec sm4Key = new SecretKeySpec(key, algorithmName);
+        return sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.DECRYPT_MODE);
     }
 
     /**
      * 执行sm4加解密
      *
      * @param input                 明文或密文，与参数mode有关
-     * @param key                   密钥
-     * @param sm4ModeAndPaddingEnum 加密模式和padding模式
-     * @param iv                    初始向量(ECB模式下传NULL)
+     * @param sm4Key                   密钥
+     * @param cipher                 加密模式和padding模式
+     * @param ivParameterSpec       初始向量(ECB模式下传NULL)
      * @param mode                  1-加密；2-解密
      * @return
      * @throws Exception
      */
-    private static byte[] sm4(byte[] input, byte[] key, SM4ModeAndPaddingEnum sm4ModeAndPaddingEnum, byte[] iv, int mode) throws Exception {
-        IvParameterSpec ivParameterSpec = null;
-        if (iv != null) {
-            ivParameterSpec = new IvParameterSpec(iv);
-        }
-        SecretKeySpec sm4Key = new SecretKeySpec(key, algorithmName);
-        Cipher cipher = Cipher.getInstance(sm4ModeAndPaddingEnum.getName(), BouncyCastleProvider.PROVIDER_NAME);
+    private static byte[] sm4(byte[] input, SecretKeySpec sm4Key, Cipher cipher, IvParameterSpec ivParameterSpec, int mode) throws Exception {
         if (ivParameterSpec == null) {
             cipher.init(mode, sm4Key);
         } else {
             cipher.init(mode, sm4Key, ivParameterSpec);
         }
-
         return cipher.doFinal(input);
     }
 
