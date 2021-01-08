@@ -18,7 +18,7 @@
 
 |  SM4功能   | 支持范围  | 
 |  ----  | ----  |
-| Generate Key | `是` |
+| Generate Key |  |
 | Encrypt, Decrypt | `是` |
 | PEM格式导出 |   |
 | PEM文件加密 | |
