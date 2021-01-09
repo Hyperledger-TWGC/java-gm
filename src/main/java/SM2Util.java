@@ -57,22 +57,41 @@ import org.bouncycastle.util.io.pem.PemWriter;
  */
 public class SM2Util {
 
-    private SM2Util() {
-
+    public SM2Util() throws NoSuchProviderException, NoSuchAlgorithmException {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+        signature = Signature.getInstance(SM3SM2_VALUE, BouncyCastleProvider.PROVIDER_NAME);
+        generator = KeyPairGenerator.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME);
     }
 
-    private static final String BC_VALUE = "BC";
+    public SM2Engine getSm2Engine() {
+        return sm2Engine;
+    }
+
+    public void setSm2Engine(SM2Engine sm2Engine) {
+        this.sm2Engine = sm2Engine;
+    }
+
+    public Signature getSignature() {
+        return signature;
+    }
+
+    public void setSignature(Signature signature) {
+        this.signature = signature;
+    }
+
+    private SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C3C2);
+    private Signature signature;
     private static final String EC_VALUE = "EC";
     private static final String SM3SM2_VALUE = "SM3WITHSM2";
     private static final String CURVE_NAME = "sm2p256v1";
-    private static X9ECParameters x9ECParameters = GMNamedCurves.getByName(CURVE_NAME);
-    private static ECDomainParameters ecDomainParameters = new ECDomainParameters(x9ECParameters.getCurve(), x9ECParameters.getG(), x9ECParameters.getN());
+    private static final X9ECParameters X_9_EC_PARAMETERS = GMNamedCurves.getByName(CURVE_NAME);
+    private static final ECDomainParameters EC_DOMAIN_PARAMETERS = new ECDomainParameters(X_9_EC_PARAMETERS.getCurve(), X_9_EC_PARAMETERS.getG(), X_9_EC_PARAMETERS.getN());
+    private static final ECParameterSpec PARAMETER_SPEC = new ECParameterSpec(X_9_EC_PARAMETERS.getCurve(), X_9_EC_PARAMETERS.getG(), X_9_EC_PARAMETERS.getN());
+    private static KeyPairGenerator generator;
+    private static final JcaPEMKeyConverter CONVERTER = new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME);
 
-    static {
-        if (Security.getProvider(BC_VALUE) == null) {
-            Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        }
-    }
 
     /**
      * 生成 PKCS#10 证书请求
@@ -81,46 +100,39 @@ public class SM2Util {
      * @throws NoSuchAlgorithmException           当指定的密钥对算法不支持时
      * @throws InvalidAlgorithmParameterException 当采用的 ECC 算法不适用于该密钥对生成器时
      */
-    public static KeyPair generatekeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance(EC_VALUE, BC_VALUE);
+    public KeyPair generatekeyPair() throws InvalidAlgorithmParameterException {
         generator.initialize(new ECGenParameterSpec(CURVE_NAME));
         return generator.generateKeyPair();
     }
 
-    // currently only support for SM3SM2_VALUE for hash
-    public static Signature generateSignature() throws NoSuchAlgorithmException, NoSuchProviderException {
-        return Signature.getInstance(SM3SM2_VALUE, BC_VALUE);
-    }
-
-    public static byte[] encrypt(PublicKey publicKey, byte[] message) throws InvalidCipherTextException {
+    public byte[] encrypt(PublicKey publicKey, byte[] message) throws InvalidCipherTextException {
         BCECPublicKey localECPublicKey = (BCECPublicKey) publicKey;
-        ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(localECPublicKey.getQ(), ecDomainParameters);
-        SM2Engine sm2Engine = new SM2Engine();
+        ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(localECPublicKey.getQ(), EC_DOMAIN_PARAMETERS);
         sm2Engine.init(true, new ParametersWithRandom(ecPublicKeyParameters, new SecureRandom()));
         return sm2Engine.processBlock(message, 0, message.length);
     }
 
-    public static byte[] decrypt(PrivateKey privateKey, byte[] message) throws InvalidCipherTextException {
+    public byte[] decrypt(PrivateKey privateKey, byte[] message) throws InvalidCipherTextException {
         BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
-        ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(localECPrivateKey.getD(), ecDomainParameters);
-        SM2Engine sm2Engine = new SM2Engine();
+        ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(localECPrivateKey.getD(), EC_DOMAIN_PARAMETERS);
         sm2Engine.init(false, ecPrivateKeyParameters);
         return sm2Engine.processBlock(message, 0, message.length);
     }
 
-    public static byte[] sign(Signature signature, PrivateKey privateKey, byte[] message) throws SignatureException, InvalidKeyException {
+
+    public byte[] sign(PrivateKey privateKey, byte[] message) throws SignatureException, InvalidKeyException {
         signature.initSign(privateKey, new SecureRandom());
         signature.update(message);
         return signature.sign();
     }
 
-    public static boolean verify(Signature signature, PublicKey publicKey, byte[] message, byte[] sigBytes) throws InvalidKeyException, SignatureException {
+    public boolean verify(PublicKey publicKey, byte[] message, byte[] sigBytes) throws InvalidKeyException, SignatureException {
         signature.initVerify(publicKey);
         signature.update(message);
         return signature.verify(sigBytes);
     }
 
-    public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, X500Principal subject) throws IOException, OperatorCreationException {
+    public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, X500Principal subject) throws OperatorCreationException {
         ContentSigner signer = new JcaContentSignerBuilder("SM3withSM2").build(keyPair.getPrivate());
         PKCS10CertificationRequestBuilder builder = new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
         return builder.build(signer);
@@ -130,7 +142,7 @@ public class SM2Util {
         OutputEncryptor encryptor = null;
         if (password != null && password.length() > 0) {
             encryptor = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC)
-                    .setProvider(BC_VALUE)
+                    .setProvider(BouncyCastleProvider.PROVIDER_NAME)
                     .setRandom(new SecureRandom())
                     .setPasssword(password.toCharArray())
                     .build();
@@ -140,6 +152,7 @@ public class SM2Util {
         JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter);
         pemWriter.writeObject(generator);
         pemWriter.close();
+        stringWriter.close();
         return stringWriter.toString();
     }
 
@@ -173,19 +186,19 @@ public class SM2Util {
         FileReader fr = new FileReader(new File(filename));
         PEMParser pemReader = new PEMParser(fr);
         Object obj = pemReader.readObject();
+        fr.close();
         pemReader.close();
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BC_VALUE);
         if (password != null && password.length() > 0) {
             if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
                 PKCS8EncryptedPrivateKeyInfo epkInfo = (PKCS8EncryptedPrivateKeyInfo) obj;
                 InputDecryptorProvider decryptor = new JceOpenSSLPKCS8DecryptorProviderBuilder()
-                        .setProvider(BC_VALUE)
+                        .setProvider(BouncyCastleProvider.PROVIDER_NAME)
                         .build(password.toCharArray());
                 PrivateKeyInfo pkInfo = epkInfo.decryptPrivateKeyInfo(decryptor);
-                return converter.getPrivateKey(pkInfo);
+                return CONVERTER.getPrivateKey(pkInfo);
             }
         } else {
-            return converter.getPrivateKey((PrivateKeyInfo) obj);
+            return CONVERTER.getPrivateKey((PrivateKeyInfo) obj);
         }
         return null;
     }
@@ -194,15 +207,15 @@ public class SM2Util {
     public static PublicKey loadPublicFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
         FileReader fr = new FileReader(new File(filename));
         PemObject spki = new PemReader(fr).readPemObject();
-        return KeyFactory.getInstance(EC_VALUE, BC_VALUE).generatePublic(new X509EncodedKeySpec(spki.getContent()));
+        fr.close();
+        return KeyFactory.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
     }
 
     public static PublicKey derivePublicFromPrivate(PrivateKey privateKey) {
         BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
         BigInteger d = localECPrivateKey.getD();
         ECPoint ecpoint = new FixedPointCombMultiplier().multiply(GMNamedCurves.getByName(CURVE_NAME).getG(), d);
-        ECParameterSpec parameterSpec = new ECParameterSpec(x9ECParameters.getCurve(), x9ECParameters.getG(), x9ECParameters.getN());
-        ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(ecpoint, parameterSpec);
+        ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(ecpoint, PARAMETER_SPEC);
         return new BCECPublicKey(privateKey.getAlgorithm(), pubKeySpec,
                 BouncyCastleProvider.CONFIGURATION);
     }

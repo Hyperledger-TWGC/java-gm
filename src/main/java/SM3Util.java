@@ -15,10 +15,7 @@ public class SM3Util {
 
     }
 
-    static {
-        Security.addProvider(new BouncyCastleProvider());
-    }
-
+    private static final SM3Digest digest = new SM3Digest();
     /**
      * 计算SM3摘要值
      *
@@ -26,7 +23,6 @@ public class SM3Util {
      * @return 摘要值
      */
     public static byte[] hash(byte[] srcData) {
-        SM3Digest digest = new SM3Digest();
         digest.update(srcData, 0, srcData.length);
         byte[] hashVal = new byte[digest.getDigestSize()];
         digest.doFinal(hashVal, 0);
