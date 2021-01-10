@@ -106,30 +106,38 @@ public class SM2Util {
     }
 
     public byte[] encrypt(PublicKey publicKey, byte[] message) throws InvalidCipherTextException {
-        BCECPublicKey localECPublicKey = (BCECPublicKey) publicKey;
-        ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(localECPublicKey.getQ(), EC_DOMAIN_PARAMETERS);
-        sm2Engine.init(true, new ParametersWithRandom(ecPublicKeyParameters, new SecureRandom()));
-        return sm2Engine.processBlock(message, 0, message.length);
+        synchronized (this) {
+            BCECPublicKey localECPublicKey = (BCECPublicKey) publicKey;
+            ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(localECPublicKey.getQ(), EC_DOMAIN_PARAMETERS);
+            sm2Engine.init(true, new ParametersWithRandom(ecPublicKeyParameters, new SecureRandom()));
+            return sm2Engine.processBlock(message, 0, message.length);
+        }
     }
 
     public byte[] decrypt(PrivateKey privateKey, byte[] message) throws InvalidCipherTextException {
-        BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
-        ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(localECPrivateKey.getD(), EC_DOMAIN_PARAMETERS);
-        sm2Engine.init(false, ecPrivateKeyParameters);
-        return sm2Engine.processBlock(message, 0, message.length);
+        synchronized (this) {
+            BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
+            ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(localECPrivateKey.getD(), EC_DOMAIN_PARAMETERS);
+            sm2Engine.init(false, ecPrivateKeyParameters);
+            return sm2Engine.processBlock(message, 0, message.length);
+        }
     }
 
 
     public byte[] sign(PrivateKey privateKey, byte[] message) throws SignatureException, InvalidKeyException {
-        signature.initSign(privateKey, new SecureRandom());
-        signature.update(message);
-        return signature.sign();
+        synchronized (this) {
+            signature.initSign(privateKey, new SecureRandom());
+            signature.update(message);
+            return signature.sign();
+        }
     }
 
     public boolean verify(PublicKey publicKey, byte[] message, byte[] sigBytes) throws InvalidKeyException, SignatureException {
-        signature.initVerify(publicKey);
-        signature.update(message);
-        return signature.verify(sigBytes);
+        synchronized (this) {
+            signature.initVerify(publicKey);
+            signature.update(message);
+            return signature.verify(sigBytes);
+        }
     }
 
     public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, X500Principal subject) throws OperatorCreationException {

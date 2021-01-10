@@ -1,8 +1,14 @@
 import java.nio.charset.Charset;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -27,6 +33,7 @@ public class SM4UtilTest {
     private static SM4Util.SM4ModeAndPaddingEnum type;
     static int randomData = 128;
     static String message = RandomStringUtils.random(randomData);
+    static String exceptionHappened = "Exception happened";
 
     @Parameters(name = "{index}: sm4({1})")
     public static Collection prepareData() throws NoSuchProviderException, NoSuchAlgorithmException {
@@ -62,5 +69,41 @@ public class SM4UtilTest {
 
         System.out.println("解密内容：" + new String(c));
         Assert.assertArrayEquals(c, content);
+    }
+
+    @Test
+    public void threadsafe() throws Exception {
+        Queue<byte[]> results = new ConcurrentLinkedQueue<byte[]>();
+        Queue<Exception> ex = new ConcurrentLinkedQueue<Exception>();
+
+        SM4Util instance = new SM4Util();
+        byte[] key = instance.generateKey();
+        System.out.println("===== " + type + " =====");
+        // 加密
+        byte[] v = instance.encrypt(content, key, type, iv);
+        // 解密
+        byte[] c = instance.decrypt(v, key, type, iv);
+
+        System.out.println("解密内容：" + new String(c));
+        Assert.assertArrayEquals(c, content);
+        for (int i = 0; i < 300; i++) {
+            new Thread(() -> {
+                try {
+                    results.add(instance.decrypt(v, key, type, iv));
+                } catch (Exception e) {
+                    ex.add(e);
+                }
+            }).start();
+        }
+        Thread.sleep(5000);
+        while (!ex.isEmpty()) {
+            Exception e =  ex.poll();
+            e.printStackTrace();
+            Assert.fail(exceptionHappened);
+        }
+        Assert.assertTrue(results.size() == 300);
+        while (!results.isEmpty()) {
+            Assert.assertArrayEquals(results.poll(), content);
+        }
     }
 }

@@ -23,10 +23,12 @@ public class SM3Util {
      * @return 摘要值
      */
     public static byte[] hash(byte[] srcData) {
-        digest.update(srcData, 0, srcData.length);
-        byte[] hashVal = new byte[digest.getDigestSize()];
-        digest.doFinal(hashVal, 0);
-        return hashVal;
+        synchronized (SM3Util.class) {
+            digest.update(srcData, 0, srcData.length);
+            byte[] hashVal = new byte[digest.getDigestSize()];
+            digest.doFinal(hashVal, 0);
+            return hashVal;
+        }
     }
 
     /**
@@ -37,7 +39,9 @@ public class SM3Util {
      * @return 返回true标识验证成功，false标识验证失败
      */
     public static boolean verify(byte[] srcData, byte[] sm3HashVal) {
-        byte[] hashVal = hash(srcData);
-        return Arrays.equals(hashVal, sm3HashVal);
+        synchronized (SM3Util.class) {
+            byte[] hashVal = hash(srcData);
+            return Arrays.equals(hashVal, sm3HashVal);
+        }
     }
 }
