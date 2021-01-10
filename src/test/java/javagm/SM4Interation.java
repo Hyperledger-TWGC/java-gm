@@ -1,3 +1,5 @@
+package javagm;
+
 import org.bouncycastle.pqc.math.linearalgebra.ByteUtils;
 import org.junit.Assert;
 import org.junit.Test;
