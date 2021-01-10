@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'checkstyle'
     id 'maven-publish'
+    id "me.champeau.gradle.jmh" version "0.5.2"
 }
 
 group 'twgc'
@@ -15,7 +16,7 @@ allprojects {
         maven {
             url 'https://maven.aliyun.com/repository/public/'
         }
-        mavenLocal()
+        //mavenLocal()
         mavenCentral()
     }
 }
@@ -26,6 +27,10 @@ tasks.withType(JavaCompile) {
 
 tasks.withType(Test) {
     systemProperty "file.encoding", "UTF-8"
+}
+
+jmh {
+    zip64 = false
 }
 
 checkstyle {
@@ -68,4 +73,8 @@ dependencies {
     implementation group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.67'
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.apache.commons', name: 'commons-lang3', version: '3.11'
+    jmh 'org.apache.commons:commons-lang3:3.11'
+    jmh 'org.openjdk.jmh:jmh-core:1.25'
+    jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.25'
+    jmh group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.67'
 }

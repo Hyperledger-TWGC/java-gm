@@ -25,6 +25,14 @@ jobs:
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
           tasks: 'build'
+
+  - job: benchmark
+    dependsOn:
+      - ut
+    steps:
+      - script:
+          gradle jmh
+
   - job: releaseJar
     dependsOn:
       - ut
