@@ -59,13 +59,15 @@ public class SM4Util {
      * @throws Exception
      */
     public byte[] encrypt(byte[] input, byte[] key, SM4ModeAndPaddingEnum sm4ModeAndPaddingEnum, byte[] iv) throws Exception {
-        IvParameterSpec ivParameterSpec = null;
-        if (iv != null) {
-            ivParameterSpec = new IvParameterSpec(iv);
+        synchronized (this) {
+            IvParameterSpec ivParameterSpec = null;
+            if (iv != null) {
+                ivParameterSpec = new IvParameterSpec(iv);
+            }
+            Cipher cipher = sm4ModeAndPaddingEnumCipherEnumMap.get(sm4ModeAndPaddingEnum);
+            SecretKeySpec sm4Key = new SecretKeySpec(key, ALGORITHM_NAME);
+            return sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.ENCRYPT_MODE);
         }
-        Cipher cipher = sm4ModeAndPaddingEnumCipherEnumMap.get(sm4ModeAndPaddingEnum);
-        SecretKeySpec sm4Key = new SecretKeySpec(key, ALGORITHM_NAME);
-        return sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.ENCRYPT_MODE);
     }
 
     /**
@@ -79,13 +81,15 @@ public class SM4Util {
      * @throws Exception
      */
     public byte[] decrypt(byte[] input, byte[] key, SM4ModeAndPaddingEnum sm4ModeAndPaddingEnum, byte[] iv) throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
-        IvParameterSpec ivParameterSpec = null;
-        if (iv != null) {
-            ivParameterSpec = new IvParameterSpec(iv);
+        synchronized (this) {
+            IvParameterSpec ivParameterSpec = null;
+            if (iv != null) {
+                ivParameterSpec = new IvParameterSpec(iv);
+            }
+            Cipher cipher = sm4ModeAndPaddingEnumCipherEnumMap.get(sm4ModeAndPaddingEnum);
+            SecretKeySpec sm4Key = new SecretKeySpec(key, ALGORITHM_NAME);
+            return sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.DECRYPT_MODE);
         }
-        Cipher cipher = sm4ModeAndPaddingEnumCipherEnumMap.get(sm4ModeAndPaddingEnum);
-        SecretKeySpec sm4Key = new SecretKeySpec(key, ALGORITHM_NAME);
-        return sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.DECRYPT_MODE);
     }
 
     /**
