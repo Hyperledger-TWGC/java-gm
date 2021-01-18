@@ -227,4 +227,29 @@ public class SM2Util {
         return new BCECPublicKey(privateKey.getAlgorithm(), pubKeySpec,
                 BouncyCastleProvider.CONFIGURATION);
     }
+    
+    public static X509Certificate getX509Certificate(String certFilePath) throws IOException, CertificateException,
+            NoSuchProviderException {
+        InputStream is = null;
+        try {
+            is = new FileInputStream(certFilePath);
+            return getX509Certificate(is);
+        } finally {
+            if (is != null) {
+                is.close();
+            }
+        }
+    }
+
+    public static X509Certificate getX509Certificate(byte[] certBytes) throws CertificateException,
+            NoSuchProviderException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(certBytes);
+        return getX509Certificate(bais);
+    }
+
+    public static X509Certificate getX509Certificate(InputStream is) throws CertificateException,
+            NoSuchProviderException {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
+        return (X509Certificate) cf.generateCertificate(is);
+    }
 }
