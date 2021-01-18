@@ -3,6 +3,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.security.auth.x500.X500Principal;
@@ -183,5 +185,25 @@ public class SM2UtilTest {
             e.printStackTrace();
             Assert.fail(exceptionHappened);
         }
+    }
+
+    @Test
+    public void TestgetX509Certificate() throws CertificateException, NoSuchProviderException {
+        String strCertificate = "-----BEGIN CERTIFICATE-----\n" +
+                "MIICKDCCAc+gAwIBAgIRAM/WchtznzFF6S/H96EN6R0wCgYIKoEcz1UBg3UwczEL\n" +
+                "MAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBG\n" +
+                "cmFuY2lzY28xGTAXBgNVBAoTEG9yZ2EuZXhhbXBsZS5jb20xHDAaBgNVBAMTE2Nh\n" +
+                "Lm9yZ2EuZXhhbXBsZS5jb20wHhcNMjEwMTEzMDgyODAwWhcNMzEwMTExMDgyODAw\n" +
+                "WjBqMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMN\n" +
+                "U2FuIEZyYW5jaXNjbzENMAsGA1UECxMEcGVlcjEfMB0GA1UEAxMWcGVlcjAub3Jn\n" +
+                "YS5leGFtcGxlLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABBWChV/a0czV\n" +
+                "9NtHwPWs/3cm2HIkOmLKSKsjTBTQUx+vgVOKTf7L4BImdx/k3048JHN8D0XlwWxn\n" +
+                "qqIq+Q7uNrSjTTBLMA4GA1UdDwEB/wQEAwIHgDAMBgNVHRMBAf8EAjAAMCsGA1Ud\n" +
+                "IwQkMCKAIKJ3bMdYClbzImgulhmN/qCK94Sn7qckxQwDkM+NeXSTMAoGCCqBHM9V\n" +
+                "AYN1A0cAMEQCIEXqgr+JH+/uq6GBMSoGIdQfRQNQAljy9GohQOOSL+7NAiBTdYRo\n" +
+                "kasDeekKgkKqs9/jNq7aB8MLO13eCsLTKB5oAg==\n" +
+                "-----END CERTIFICATE-----";
+        X509Certificate x509Certificate = SM2Util.getX509Certificate(strCertificate.getBytes());
+        Assert.assertEquals("SM3WITHSM2", x509Certificate.getSigAlgName());
     }
 }
