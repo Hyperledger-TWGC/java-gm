@@ -1,3 +1,4 @@
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -188,7 +189,7 @@ public class SM2UtilTest {
     }
 
     @Test
-    public void TestgetX509Certificate() throws CertificateException, NoSuchProviderException {
+    public void testGetX509Certificate() throws CertificateException, NoSuchProviderException, IOException {
         String strCertificate = "-----BEGIN CERTIFICATE-----\n" +
                 "MIICKDCCAc+gAwIBAgIRAM/WchtznzFF6S/H96EN6R0wCgYIKoEcz1UBg3UwczEL\n" +
                 "MAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBG\n" +
@@ -203,7 +204,17 @@ public class SM2UtilTest {
                 "AYN1A0cAMEQCIEXqgr+JH+/uq6GBMSoGIdQfRQNQAljy9GohQOOSL+7NAiBTdYRo\n" +
                 "kasDeekKgkKqs9/jNq7aB8MLO13eCsLTKB5oAg==\n" +
                 "-----END CERTIFICATE-----";
-        X509Certificate x509Certificate = SM2Util.getX509Certificate(strCertificate.getBytes());
-        Assert.assertEquals("SM3WITHSM2", x509Certificate.getSigAlgName());
+
+        byte[] certBytes = strCertificate.getBytes();
+        X509Certificate x509Certificatefrombyte = SM2Util.getX509Certificate(certBytes);
+        Assert.assertEquals("SM3WITHSM2", x509Certificatefrombyte.getSigAlgName());
+
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(certBytes);
+        X509Certificate x509Certificatefrominputstream = SM2Util.getX509Certificate(inputStream);
+        Assert.assertEquals("SM3WITHSM2", x509Certificatefrominputstream.getSigAlgName());
+
+        Files.write(Paths.get("cert.pem"), certBytes);
+        X509Certificate x509Certificatefromfile = SM2Util.getX509Certificate("cert.pem");
+        Assert.assertEquals("SM3WITHSM2", x509Certificatefromfile.getSigAlgName());
     }
 }

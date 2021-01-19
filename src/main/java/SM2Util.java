@@ -227,7 +227,7 @@ public class SM2Util {
         return new BCECPublicKey(privateKey.getAlgorithm(), pubKeySpec,
                 BouncyCastleProvider.CONFIGURATION);
     }
-    
+
     public static X509Certificate getX509Certificate(String certFilePath) throws IOException, CertificateException,
             NoSuchProviderException {
         InputStream is = null;
