@@ -1,6 +1,7 @@
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.Test;
+import twgc.gm.sm3.SM3Util;
 
 /**
  * @author Sean
