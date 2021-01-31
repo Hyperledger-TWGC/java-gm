@@ -1,6 +1,7 @@
 import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -11,6 +12,7 @@ import javax.security.auth.x500.X500Principal;
 
 import org.bouncycastle.asn1.gm.GMNamedCurves;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM2Engine;
@@ -146,6 +148,14 @@ public class SM2Util {
         return builder.build(signer);
     }
 
+    public static PKCS10CertificationRequest generateCSR(X500Name subject, PublicKey pubKey, PrivateKey priKey) throws OperatorCreationException {
+
+        PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(subject, pubKey);
+        ContentSigner signerBuilder = new JcaContentSignerBuilder("SM3WITHSM2")
+                .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(priKey);
+        return csrBuilder.build(signerBuilder);
+    }
+
     public static String pemFrom(PrivateKey privateKey, String password) throws OperatorCreationException, IOException {
         OutputEncryptor encryptor = null;
         if (password != null && password.length() > 0) {
@@ -182,6 +192,16 @@ public class SM2Util {
      */
     public static String pemFrom(PKCS10CertificationRequest csr) throws IOException {
         PemObject pem = new PemObject("CERTIFICATE REQUEST", csr.getEncoded());
+        StringWriter str = new StringWriter();
+        PemWriter pemWriter = new PemWriter(str);
+        pemWriter.writeObject(pem);
+        pemWriter.close();
+        str.close();
+        return str.toString();
+    }
+
+    public static String pemFrom(X509Certificate x509Certificate) throws IOException, CertificateEncodingException {
+        PemObject pem = new PemObject("CERTIFICATE", x509Certificate.getEncoded());
         StringWriter str = new StringWriter();
         PemWriter pemWriter = new PemWriter(str);
         pemWriter.writeObject(pem);
@@ -233,7 +253,8 @@ public class SM2Util {
         InputStream is = null;
         try {
             is = new FileInputStream(certFilePath);
-            return getX509Certificate(is);
+            CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
+            return (X509Certificate) cf.generateCertificate(is);
         } finally {
             if (is != null) {
                 is.close();
@@ -241,15 +262,4 @@ public class SM2Util {
         }
     }
 
-    public static X509Certificate getX509Certificate(byte[] certBytes) throws CertificateException,
-            NoSuchProviderException {
-        ByteArrayInputStream bais = new ByteArrayInputStream(certBytes);
-        return getX509Certificate(bais);
-    }
-
-    public static X509Certificate getX509Certificate(InputStream is) throws CertificateException,
-            NoSuchProviderException {
-        CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
-        return (X509Certificate) cf.generateCertificate(is);
-    }
 }
