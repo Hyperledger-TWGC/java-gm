@@ -1,18 +1,17 @@
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.security.auth.x500.X500Principal;
-
+import cert.CertSNAllocator;
+import cert.RandomSNAllocator;
+import cert.SM2X509CertMaker;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.crypto.engines.SM2Engine;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Assert;
@@ -20,6 +19,8 @@ import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+
+import static cert.SM2X509CertMaker.*;
 
 
 @FixMethodOrder(MethodSorters.JVM)
@@ -29,6 +30,7 @@ public class SM2UtilTest {
     static String privFileName = "priv.pem";
     static String encryptedprivFileName = "encryptedpriv.pem";
     static String reqFileName = "req.pem";
+    static String certFileName = "cert.pem";
     static String exceptionHappened = "Exception happened";
     static String keyEqualHint = "key should be equal";
     static String passwd = RandomStringUtils.random(18);
@@ -189,32 +191,63 @@ public class SM2UtilTest {
     }
 
     @Test
-    public void testGetX509Certificate() throws CertificateException, NoSuchProviderException, IOException {
-        String strCertificate = "-----BEGIN CERTIFICATE-----\n" +
-                "MIICKDCCAc+gAwIBAgIRAM/WchtznzFF6S/H96EN6R0wCgYIKoEcz1UBg3UwczEL\n" +
-                "MAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBG\n" +
-                "cmFuY2lzY28xGTAXBgNVBAoTEG9yZ2EuZXhhbXBsZS5jb20xHDAaBgNVBAMTE2Nh\n" +
-                "Lm9yZ2EuZXhhbXBsZS5jb20wHhcNMjEwMTEzMDgyODAwWhcNMzEwMTExMDgyODAw\n" +
-                "WjBqMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMN\n" +
-                "U2FuIEZyYW5jaXNjbzENMAsGA1UECxMEcGVlcjEfMB0GA1UEAxMWcGVlcjAub3Jn\n" +
-                "YS5leGFtcGxlLmNvbTBZMBMGByqGSM49AgEGCCqBHM9VAYItA0IABBWChV/a0czV\n" +
-                "9NtHwPWs/3cm2HIkOmLKSKsjTBTQUx+vgVOKTf7L4BImdx/k3048JHN8D0XlwWxn\n" +
-                "qqIq+Q7uNrSjTTBLMA4GA1UdDwEB/wQEAwIHgDAMBgNVHRMBAf8EAjAAMCsGA1Ud\n" +
-                "IwQkMCKAIKJ3bMdYClbzImgulhmN/qCK94Sn7qckxQwDkM+NeXSTMAoGCCqBHM9V\n" +
-                "AYN1A0cAMEQCIEXqgr+JH+/uq6GBMSoGIdQfRQNQAljy9GohQOOSL+7NAiBTdYRo\n" +
-                "kasDeekKgkKqs9/jNq7aB8MLO13eCsLTKB5oAg==\n" +
-                "-----END CERTIFICATE-----";
+    public void issueCertificate() throws Exception {
 
-        byte[] certBytes = strCertificate.getBytes();
-        X509Certificate x509Certificatefrombyte = SM2Util.getX509Certificate(certBytes);
-        Assert.assertEquals("SM3WITHSM2", x509Certificatefrombyte.getSigAlgName());
+        SM2Util sm2Util = new SM2Util();
+        // 证书颁发时长
+        long certExpire = 20L * 365 * 24 * 60 * 60 * 1000;
+        CertSNAllocator snAllocator = new RandomSNAllocator();
 
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(certBytes);
-        X509Certificate x509Certificatefrominputstream = SM2Util.getX509Certificate(inputStream);
-        Assert.assertEquals("SM3WITHSM2", x509Certificatefrominputstream.getSigAlgName());
+        // one 模拟根 CA 自签名生成根证书 rootCACert
+        KeyPair rootKeyPair = sm2Util.generatekeyPair();
+        X500Name rootX500Name = buildRootCADN();
+        SM2X509CertMaker rootCertMaker = new SM2X509CertMaker(rootKeyPair, certExpire, rootX500Name, snAllocator);
+        PublicKey rootKeyPairPublic = rootKeyPair.getPublic();
+        byte[] rootcsr = SM2Util.generateCSR(rootX500Name, rootKeyPairPublic, rootKeyPair.getPrivate()).getEncoded();
+        X509Certificate rootCACert = rootCertMaker.makeRootCACert(rootcsr);
 
-        Files.write(Paths.get("cert.pem"), certBytes);
-        X509Certificate x509Certificatefromfile = SM2Util.getX509Certificate("cert.pem");
+        // two 模拟根 CA 生成中间证书
+        KeyPair midKeyPair = sm2Util.generatekeyPair();
+        X500Name midX500Name = buildMidCADN();
+        PublicKey midKeyPairPublic = midKeyPair.getPublic();
+        byte[] midcsr = SM2Util.generateCSR(midX500Name, midKeyPairPublic, midKeyPair.getPrivate()).getEncoded();
+        X509Certificate midCACert = rootCertMaker.makeSubCACert(midcsr);
+
+        // three 模拟中间 CA 生成用户证书
+        SM2X509CertMaker midCertMaker = new SM2X509CertMaker(midKeyPair, certExpire, midX500Name, snAllocator);
+        KeyPair userKeyPair = sm2Util.generatekeyPair();
+        X500Name userx500Name = buildSubjectDN();
+        PublicKey userKeyPairPublic = userKeyPair.getPublic();
+        byte[] usercsr = SM2Util.generateCSR(userx500Name, userKeyPairPublic, userKeyPair.getPrivate()).getEncoded();
+        X509Certificate userCACert = midCertMaker.makeSubCACert(usercsr);
+
+        // 根证书自签名，用自己的公钥验证
+        rootCACert.verify(rootKeyPairPublic, BouncyCastleProvider.PROVIDER_NAME);
+        // 中间证书可用根证书的公钥验证
+        midCACert.verify(rootKeyPairPublic, BouncyCastleProvider.PROVIDER_NAME);
+        // 用户证书可用中间证书的公钥验证
+        userCACert.verify(midKeyPairPublic, BouncyCastleProvider.PROVIDER_NAME);
+
+    }
+
+    @Test
+    public void getX509Certificate() throws Exception {
+
+        SM2Util sm2Util = new SM2Util();
+
+        // 生成证书写入到文件
+        long certExpire = 20L * 365 * 24 * 60 * 60 * 1000;
+        CertSNAllocator snAllocator = new RandomSNAllocator();
+        KeyPair rootKeyPair = sm2Util.generatekeyPair();
+        X500Name rootX500Name = buildRootCADN();
+        SM2X509CertMaker rootCertMaker = new SM2X509CertMaker(rootKeyPair, certExpire, rootX500Name, snAllocator);
+        PublicKey rootKeyPairPublic = rootKeyPair.getPublic();
+        byte[] csr = sm2Util.generateCSR(rootX500Name, rootKeyPairPublic, rootKeyPair.getPrivate()).getEncoded();
+        X509Certificate x509Certificate = rootCertMaker.makeRootCACert(csr);
+        String certStr = SM2Util.pemFrom(x509Certificate);
+        Files.write(Paths.get(certFileName), certStr.getBytes());
+
+        X509Certificate x509Certificatefromfile = sm2Util.getX509Certificate(certFileName);
         Assert.assertEquals("SM3WITHSM2", x509Certificatefromfile.getSigAlgName());
     }
 }
