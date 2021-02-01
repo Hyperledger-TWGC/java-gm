@@ -151,7 +151,7 @@ public class SM2Util {
     public static PKCS10CertificationRequest generateCSR(X500Name subject, PublicKey pubKey, PrivateKey priKey) throws OperatorCreationException {
 
         PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(subject, pubKey);
-        ContentSigner signerBuilder = new JcaContentSignerBuilder("SM3WITHSM2")
+        ContentSigner signerBuilder = new JcaContentSignerBuilder(SM3SM2_VALUE)
                 .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(priKey);
         return csrBuilder.build(signerBuilder);
     }
@@ -248,18 +248,10 @@ public class SM2Util {
                 BouncyCastleProvider.CONFIGURATION);
     }
 
-    public static X509Certificate getX509Certificate(String certFilePath) throws IOException, CertificateException,
+    public static X509Certificate getX509Certificate(InputStream inputStream) throws IOException, CertificateException,
             NoSuchProviderException {
-        InputStream is = null;
-        try {
-            is = new FileInputStream(certFilePath);
-            CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
-            return (X509Certificate) cf.generateCertificate(is);
-        } finally {
-            if (is != null) {
-                is.close();
-            }
-        }
+        CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
+        return (X509Certificate) cf.generateCertificate(inputStream);
     }
 
 }
