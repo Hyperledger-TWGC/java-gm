@@ -40,8 +40,7 @@ public class SM2X509CertMaker {
         EndEntity
     } // class CertLevel
 
-    public static final String SIGN_ALGO_SM3WITHSM2 = "SM3WITHSM2";
-
+    private static final String SIGN_ALGO_SM3WITHSM2 = "SM3WITHSM2";
     private long certExpire;
     private X500Name issuerDN;
     private CertSNAllocator snAllocator;
@@ -250,34 +249,6 @@ public class SM2X509CertMaker {
             return contentSignerBuilder;
         }
         throw new Exception("Unsupported PublicKey Algorithm:" + issPub.getAlgorithm());
-    }
-
-    public static X500Name buildRootCADN() {
-        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
-        builder.addRDN(BCStyle.C, "CN");
-        builder.addRDN(BCStyle.O, "org.zz");
-        builder.addRDN(BCStyle.OU, "org.zz");
-        builder.addRDN(BCStyle.CN, "ZZ Root CA");
-        return builder.build();
-    }
-
-    public static X500Name buildMidCADN() {
-        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
-        builder.addRDN(BCStyle.C, "CN");
-        builder.addRDN(BCStyle.O, "org.zz");
-        builder.addRDN(BCStyle.OU, "org.zz");
-        builder.addRDN(BCStyle.CN, "ZZ Intermediate CA");
-        return builder.build();
-    }
-
-    public static X500Name buildSubjectDN() {
-        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
-        builder.addRDN(BCStyle.C, "CN");
-        builder.addRDN(BCStyle.O, "org.zz");
-        builder.addRDN(BCStyle.OU, "org.zz");
-        builder.addRDN(BCStyle.CN, "example.org");
-        builder.addRDN(BCStyle.EmailAddress, "abc@example.org");
-        return builder.build();
     }
 
 }
