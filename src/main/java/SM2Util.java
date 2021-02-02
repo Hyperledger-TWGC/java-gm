@@ -148,12 +148,13 @@ public class SM2Util {
         return builder.build(signer);
     }
 
-    public static PKCS10CertificationRequest generateCSR(X500Name subject, PublicKey pubKey, PrivateKey priKey) throws OperatorCreationException {
+    // TODO choose one generateCSR
+    public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, X500Name subject) throws OperatorCreationException {
 
-        PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(subject, pubKey);
-        ContentSigner signerBuilder = new JcaContentSignerBuilder(SM3SM2_VALUE)
-                .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(priKey);
-        return csrBuilder.build(signerBuilder);
+        PKCS10CertificationRequestBuilder builder = new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
+        ContentSigner signer = new JcaContentSignerBuilder(SM3SM2_VALUE)
+                .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate());
+        return builder.build(signer);
     }
 
     public static String pemFrom(PrivateKey privateKey, String password) throws OperatorCreationException, IOException {
@@ -248,10 +249,16 @@ public class SM2Util {
                 BouncyCastleProvider.CONFIGURATION);
     }
 
-    public static X509Certificate getX509Certificate(InputStream inputStream) throws IOException, CertificateException,
+    public static X509Certificate loadX509CertificateFromFile(String filename) throws IOException, CertificateException,
             NoSuchProviderException {
-        CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
-        return (X509Certificate) cf.generateCertificate(inputStream);
+        FileInputStream in = null;
+        try {
+            in = new FileInputStream(filename);
+            CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
+            return (X509Certificate) cf.generateCertificate(in);
+        } finally {
+            in.close();
+        }
     }
 
 }
