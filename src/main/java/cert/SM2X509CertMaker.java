@@ -1,5 +1,6 @@
 package cert;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -45,6 +46,9 @@ public class SM2X509CertMaker {
     private X500Name issuerDN;
     private CertSNAllocator snAllocator;
     private KeyPair issuerKeyPair;
+    private String commonName;
+    private List<GeneralName> subjectAltNames = new LinkedList<>();
+    private boolean selfSignedEECert;
 
     /**
      * @param issuerKeyPair 证书颁发者的密钥对。
@@ -100,24 +104,78 @@ public class SM2X509CertMaker {
      * @throws Exception
      */
     private X509Certificate makeCertificate(CertLevel certLevel, Integer pathLenConstrain,
-                                            byte[] csr, KeyUsage keyUsage, KeyPurposeId[] extendedKeyUsages)
-            throws Exception {
+                                            byte[] csr, KeyUsage keyUsage, KeyPurposeId[] extendedKeyUsages) throws Exception {
         if (certLevel == CertLevel.EndEntity) {
             if (keyUsage.hasUsages(KeyUsage.keyCertSign)) {
-                throw new IllegalArgumentException(
-                        "keyusage keyCertSign is not allowed in EndEntity Certificate");
+                throw new IllegalArgumentException("keyusage keyCertSign is not allowed in EndEntity Certificate");
+            }
+        }
+        PKCS10CertificationRequest request = new PKCS10CertificationRequest(csr);
+        SubjectPublicKeyInfo subPub = request.getSubjectPublicKeyInfo();
+        X509v3CertificateBuilder v3CertGen = genX509v3CertificateBuilder(certLevel, request);
+
+        JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
+        v3CertGen.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(subPub));
+        if (certLevel != CertLevel.RootCA && !selfSignedEECert) {
+            v3CertGen.addExtension(Extension.authorityKeyIdentifier, false,
+                    extUtils.createAuthorityKeyIdentifier(SubjectPublicKeyInfo.getInstance(issuerKeyPair.getPublic().getEncoded())));
+        }
+
+        BasicConstraints basicConstraints;
+        if (certLevel == CertLevel.EndEntity) {
+            basicConstraints = new BasicConstraints(false);
+        } else {
+            basicConstraints = pathLenConstrain == null ? new BasicConstraints(true) : new BasicConstraints(pathLenConstrain.intValue());
+        }
+        v3CertGen.addExtension(Extension.basicConstraints, true, basicConstraints);
+        v3CertGen.addExtension(Extension.keyUsage, true, keyUsage);
+
+        if (extendedKeyUsages != null) {
+            ExtendedKeyUsage xku = new ExtendedKeyUsage(extendedKeyUsages);
+            v3CertGen.addExtension(Extension.extendedKeyUsage, false, xku);
+            boolean forSSLServer = false;
+            for (KeyPurposeId purposeId : extendedKeyUsages) {
+                if (KeyPurposeId.id_kp_serverAuth.equals(purposeId)) {
+                    forSSLServer = true;
+                    break;
+                }
+            }
+            if (forSSLServer) {
+                if (commonName == null) {
+                    throw new IllegalArgumentException("commonName must not be null");
+                }
+                GeneralName name = new GeneralName(GeneralName.dNSName, new DERIA5String(commonName, true));
+                subjectAltNames.add(name);
             }
         }
 
-        PKCS10CertificationRequest request = new PKCS10CertificationRequest(csr);
-        SubjectPublicKeyInfo subPub = request.getSubjectPublicKeyInfo();
+        if (!subjectAltNames.isEmpty()) {
+            v3CertGen.addExtension(Extension.subjectAlternativeName, false,
+                    new GeneralNames(subjectAltNames.toArray(new GeneralName[0])));
+        }
 
-        PrivateKey issPriv = issuerKeyPair.getPrivate();
-        PublicKey issPub = issuerKeyPair.getPublic();
+        JcaContentSignerBuilder contentSignerBuilder = makeContentSignerBuilder(issuerKeyPair.getPublic());
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME)
+                .getCertificate(v3CertGen.build(contentSignerBuilder.build(issuerKeyPair.getPrivate())));
+        cert.verify(issuerKeyPair.getPublic());
+        return cert;
+    }
+
+    private JcaContentSignerBuilder makeContentSignerBuilder(PublicKey issPub) throws Exception {
+        if (issPub.getAlgorithm().equals("EC")) {
+            JcaContentSignerBuilder contentSignerBuilder = new JcaContentSignerBuilder(SIGN_ALGO_SM3WITHSM2);
+            contentSignerBuilder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
+            return contentSignerBuilder;
+        }
+        throw new Exception("Unsupported PublicKey Algorithm:" + issPub.getAlgorithm());
+    }
+
+    private X509v3CertificateBuilder genX509v3CertificateBuilder(CertLevel certLevel, PKCS10CertificationRequest request) throws Exception {
+
+        SubjectPublicKeyInfo subPub = request.getSubjectPublicKeyInfo();
 
         X500Name subject = request.getSubject();
         String email = null;
-        String commonName = null;
         /*
          * RFC 5280 §4.2.1.6 Subject
          *  Conforming implementations generating new certificates with
@@ -144,7 +202,6 @@ public class SM2X509CertMaker {
             }
         }
 
-        List<GeneralName> subjectAltNames = new LinkedList<>();
         if (email != null) {
             subject = new X500Name(newRdns.toArray(new RDN[0]));
             subjectAltNames.add(
@@ -152,7 +209,6 @@ public class SM2X509CertMaker {
                             new DERIA5String(email, true)));
         }
 
-        boolean selfSignedEECert = false;
         switch (certLevel) {
             case RootCA:
                 if (issuerDN.equals(subject)) {
@@ -177,78 +233,10 @@ public class SM2X509CertMaker {
         BigInteger serialNumber = snAllocator.nextSerialNumber();
         Date notBefore = new Date();
         Date notAfter = new Date(notBefore.getTime() + certExpire);
-        X509v3CertificateBuilder v3CertGen = new X509v3CertificateBuilder(
+        return new X509v3CertificateBuilder(
                 issuerDN, serialNumber,
                 notBefore, notAfter,
                 subject, subPub);
-
-        JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
-        v3CertGen.addExtension(Extension.subjectKeyIdentifier, false,
-                extUtils.createSubjectKeyIdentifier(subPub));
-        if (certLevel != CertLevel.RootCA && !selfSignedEECert) {
-            v3CertGen.addExtension(Extension.authorityKeyIdentifier, false,
-                    extUtils.createAuthorityKeyIdentifier(SubjectPublicKeyInfo.getInstance(issPub.getEncoded())));
-        }
-
-        // RFC 5280 §4.2.1.9 Basic Constraints:
-        // Conforming CAs MUST include this extension in all CA certificates
-        // that contain public keys used to validate digital signatures on
-        // certificates and MUST mark the extension as critical in such
-        // certificates.
-        BasicConstraints basicConstraints;
-        if (certLevel == CertLevel.EndEntity) {
-            basicConstraints = new BasicConstraints(false);
-        } else {
-            basicConstraints = pathLenConstrain == null
-                    ? new BasicConstraints(true) : new BasicConstraints(pathLenConstrain.intValue());
-        }
-        v3CertGen.addExtension(Extension.basicConstraints, true, basicConstraints);
-
-        // RFC 5280 §4.2.1.3 Key Usage: When present, conforming CAs SHOULD mark this extension as critical.
-        v3CertGen.addExtension(Extension.keyUsage, true, keyUsage);
-
-        if (extendedKeyUsages != null) {
-            ExtendedKeyUsage xku = new ExtendedKeyUsage(extendedKeyUsages);
-            v3CertGen.addExtension(Extension.extendedKeyUsage, false, xku);
-
-            boolean forSSLServer = false;
-            for (KeyPurposeId purposeId : extendedKeyUsages) {
-                if (KeyPurposeId.id_kp_serverAuth.equals(purposeId)) {
-                    forSSLServer = true;
-                    break;
-                }
-            }
-
-            if (forSSLServer) {
-                if (commonName == null) {
-                    throw new IllegalArgumentException("commonName must not be null");
-                }
-                GeneralName name = new GeneralName(GeneralName.dNSName,
-                        new DERIA5String(commonName, true));
-                subjectAltNames.add(name);
-            }
-        }
-
-        if (!subjectAltNames.isEmpty()) {
-            v3CertGen.addExtension(Extension.subjectAlternativeName, false,
-                    new GeneralNames(subjectAltNames.toArray(new GeneralName[0])));
-        }
-
-        JcaContentSignerBuilder contentSignerBuilder = makeContentSignerBuilder(issPub);
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME)
-                .getCertificate(v3CertGen.build(contentSignerBuilder.build(issPriv)));
-        cert.verify(issPub);
-
-        return cert;
-    }
-
-    private JcaContentSignerBuilder makeContentSignerBuilder(PublicKey issPub) throws Exception {
-        if (issPub.getAlgorithm().equals("EC")) {
-            JcaContentSignerBuilder contentSignerBuilder = new JcaContentSignerBuilder(SIGN_ALGO_SM3WITHSM2);
-            contentSignerBuilder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
-            return contentSignerBuilder;
-        }
-        throw new Exception("Unsupported PublicKey Algorithm:" + issPub.getAlgorithm());
     }
 
 }
