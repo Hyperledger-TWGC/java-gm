@@ -148,15 +148,6 @@ public class SM2Util {
         return builder.build(signer);
     }
 
-    // TODO choose one generateCSR
-    public static PKCS10CertificationRequest generateCSR(KeyPair keyPair, X500Name subject) throws OperatorCreationException {
-
-        PKCS10CertificationRequestBuilder builder = new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
-        ContentSigner signer = new JcaContentSignerBuilder(SM3SM2_VALUE)
-                .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate());
-        return builder.build(signer);
-    }
-
     public static String pemFrom(PrivateKey privateKey, String password) throws OperatorCreationException, IOException {
         OutputEncryptor encryptor = null;
         if (password != null && password.length() > 0) {
