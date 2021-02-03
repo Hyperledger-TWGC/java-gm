@@ -43,19 +43,12 @@ public class SM2UtilTest {
     PrivateKey privKey;
     KeyPair keyPair;
 
-    public static void saveCSRInPem(KeyPair keyPair, X500Principal subject, String csrFile) throws IOException, OperatorCreationException {
-        PKCS10CertificationRequest csr = SM2Util.generateCSR(keyPair, subject);
+    public static void saveCSRInPem(PKCS10CertificationRequest csr, String csrFile) throws IOException, OperatorCreationException {
         String csrPem = SM2Util.pemFrom(csr);
         Files.write(Paths.get(csrFile), csrPem.getBytes());
     }
 
-    public static void saveCertificateInPem(KeyPair keyPair, String certFileName) throws Exception {
-        // gen PKCS10CertificationRequest
-        X500NameBuilder rootBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-        X500Name x500Name = rootBuilder.addRDN(BCStyle.CN, "Root CA").build();
-        PKCS10CertificationRequest csr = SM2Util.generateCSR(keyPair, x500Name);
-        // gen x509Certificate
-        X509Certificate x509Certificate = genCertificate(keyPair, csr, x500Name);
+    public static void saveCertificateInPem(X509Certificate x509Certificate, String certFileName) throws Exception {
         String certStr = SM2Util.pemFrom(x509Certificate);
         Files.write(Paths.get(certFileName), certStr.getBytes());
     }
@@ -93,8 +86,15 @@ public class SM2UtilTest {
                 SM2Util instance = new SM2Util();
                 this.keyPair = instance.generatekeyPair();
                 saveKeyPairInPem(this.keyPair, pubFileName, privFileName);
-                saveCSRInPem(this.keyPair, new X500Principal("C=CN"), reqFileName);
-                saveCertificateInPem(this.keyPair, certFileName);
+
+                X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
+                X500Name x500Name = builder.addRDN(BCStyle.CN, "Root CA").build();
+                // gen csr && save
+                PKCS10CertificationRequest csr = SM2Util.generateCSR(keyPair, new X500Principal(String.valueOf(x500Name)));
+                saveCSRInPem(csr, reqFileName);
+                // gen cert && save
+                X509Certificate x509Certificate = genCertificate(keyPair, csr, x500Name);
+                saveCertificateInPem(x509Certificate, certFileName);
             } else {
                 System.out.println("Skip file generation deal to interact testing.");
             }
@@ -224,28 +224,24 @@ public class SM2UtilTest {
 
         // one 模拟根 CA 自签名生成根证书 rootCACert
         KeyPair rootKeyPair = sm2Util.generatekeyPair();
-        X500NameBuilder rootBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-        rootBuilder.addRDN(BCStyle.CN, "Root CA");
-        SM2X509CertMaker rootCertMaker = new SM2X509CertMaker(rootKeyPair, certExpire, rootBuilder.build(), snAllocator);
+        X500Name rootX500Name = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "Root CA").build();
+        SM2X509CertMaker rootCertMaker = new SM2X509CertMaker(rootKeyPair, certExpire, rootX500Name, snAllocator);
         PublicKey rootKeyPairPublic = rootKeyPair.getPublic();
-        byte[] rootcsr = SM2Util.generateCSR(rootKeyPair, rootBuilder.build()).getEncoded();
+        byte[] rootcsr = SM2Util.generateCSR(rootKeyPair, new X500Principal(String.valueOf(rootX500Name))).getEncoded();
         X509Certificate rootCACert = rootCertMaker.makeRootCACert(rootcsr);
 
         // two 模拟根 CA 生成中间证书
         KeyPair midKeyPair = sm2Util.generatekeyPair();
         PublicKey midKeyPairPublic = midKeyPair.getPublic();
-        X500NameBuilder midBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-        midBuilder.addRDN(BCStyle.CN, "Intermediate CA");
-        byte[] midcsr = SM2Util.generateCSR(midKeyPair, midBuilder.build()).getEncoded();
+        X500Name midX500Name = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "Intermediate CA").build();
+        byte[] midcsr = SM2Util.generateCSR(midKeyPair, new X500Principal(String.valueOf(midX500Name))).getEncoded();
         X509Certificate midCACert = rootCertMaker.makeSubCACert(midcsr);
 
         // three 模拟中间 CA 生成用户证书
-        SM2X509CertMaker midCertMaker = new SM2X509CertMaker(midKeyPair, certExpire, midBuilder.build(), snAllocator);
+        SM2X509CertMaker midCertMaker = new SM2X509CertMaker(midKeyPair, certExpire, midX500Name, snAllocator);
         KeyPair userKeyPair = sm2Util.generatekeyPair();
-        X500NameBuilder userBuilder = new X500NameBuilder(BCStyle.INSTANCE);
-        userBuilder.addRDN(BCStyle.CN, "User CA");
-        userBuilder.addRDN(BCStyle.EmailAddress, "abc@orga.example.com");
-        byte[] usercsr = SM2Util.generateCSR(userKeyPair, userBuilder.build()).getEncoded();
+        X500Name userX500Name = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "User CA").build();
+        byte[] usercsr = SM2Util.generateCSR(userKeyPair, new X500Principal(String.valueOf(userX500Name))).getEncoded();
         X509Certificate userCACert = midCertMaker.makeSubCACert(usercsr);
 
         // 根证书自签名，用自己的公钥验证
