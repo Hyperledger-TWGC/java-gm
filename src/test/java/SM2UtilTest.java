@@ -3,12 +3,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM2Engine;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
@@ -17,6 +14,7 @@ import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import twgc.gm.sm2.SM2Util;
 
 
 @FixMethodOrder(MethodSorters.JVM)
