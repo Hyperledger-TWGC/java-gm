@@ -5,7 +5,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
@@ -15,6 +17,8 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import twgc.gm.sm4.SM4ModeAndPaddingEnum;
 import twgc.gm.sm4.SM4Util;
+import twgc.gm.sm4.pool.SM4Cipher;
+import twgc.gm.sm4.pool.SM4CipherPool;
 
 /**
  * @author Sean
@@ -26,12 +30,12 @@ import twgc.gm.sm4.SM4Util;
 public class SM4UtilTest {
     private static byte[] content = null;
     private static byte[] content16 = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8};
-    //private static byte[] key = null;
     private static byte[] iv = null;
     private static SM4ModeAndPaddingEnum type;
     static int randomData = 128;
     static String message = RandomStringUtils.random(randomData);
     static String exceptionHappened = "Exception happened";
+    SM4CipherPool sm4CipherPool = new SM4CipherPool(10);
 
     @Parameters(name = "{index}: sm4({1})")
     public static Collection prepareData() {
@@ -57,39 +61,66 @@ public class SM4UtilTest {
 
     @Test
     public void testingSM4() throws Exception {
-        SM4Util instance = new SM4Util();
-        byte[] key = instance.generateKey();
-        System.out.println("===== " + type + " =====");
-        // 加密
-        byte[] v = instance.encrypt(content, key, type, iv);
-        // 解密
-        byte[] c = instance.decrypt(v, key, type, iv);
+        SM4Cipher sm4Cipher = null;
+        try {
+            sm4Cipher = sm4CipherPool.borrowObject();
+            Cipher cipher = sm4Cipher.getCipher(type);
+            SM4Util instance = new SM4Util();
+            byte[] key = instance.generateKey();
+            SecretKeySpec sm4Key = new SecretKeySpec(key, type.getName());
+            System.out.println("===== " + type + " =====");
+            // 加密
+            byte[] v = instance.encrypt(cipher, content, sm4Key, iv);
+            // 解密
+            byte[] c = instance.decrypt(cipher, v, sm4Key, iv);
 
-        System.out.println("解密内容：" + new String(c));
-        Assert.assertArrayEquals(c, content);
+            System.out.println("解密内容：" + new String(c));
+            Assert.assertArrayEquals(c, content);
+        } finally {
+            if (sm4Cipher != null) {
+                sm4CipherPool.returnObject(sm4Cipher);
+            }
+        }
     }
 
     @Test
     public void threadsafe() throws Exception {
+        SM4Cipher sm4Cipher = null;
+        sm4Cipher = sm4CipherPool.borrowObject();
         Queue<byte[]> results = new ConcurrentLinkedQueue<byte[]>();
         Queue<Exception> ex = new ConcurrentLinkedQueue<Exception>();
-
         SM4Util instance = new SM4Util();
         byte[] key = instance.generateKey();
-        System.out.println("===== " + type + " =====");
-        // 加密
-        byte[] v = instance.encrypt(content, key, type, iv);
-        // 解密
-        byte[] c = instance.decrypt(v, key, type, iv);
+        SecretKeySpec sm4Key = new SecretKeySpec(key, type.getName());
+        byte[] v;
+        try {
+            Cipher cipher = sm4Cipher.getCipher(type);
+            System.out.println("===== " + type + " =====");
+            // 加密
+            v = instance.encrypt(cipher, content, sm4Key, iv);
+            // 解密
+            byte[] c = instance.decrypt(cipher, v, sm4Key, iv);
 
-        System.out.println("解密内容：" + new String(c));
-        Assert.assertArrayEquals(c, content);
+            System.out.println("解密内容：" + new String(c));
+            Assert.assertArrayEquals(c, content);
+        } finally {
+            if (sm4Cipher != null) {
+                sm4CipherPool.returnObject(sm4Cipher);
+            }
+        }
         for (int i = 0; i < 300; i++) {
             new Thread(() -> {
+                SM4Cipher sm4Ciphertest = null;
                 try {
-                    results.add(instance.decrypt(v, key, type, iv));
+                    sm4Ciphertest = sm4CipherPool.borrowObject();
+                    Cipher ciphertest = sm4Ciphertest.getCipher(type);
+                    results.add(instance.decrypt(ciphertest, v, sm4Key, iv));
                 } catch (Exception e) {
                     ex.add(e);
+                } finally {
+                    if (sm4Ciphertest != null) {
+                        sm4CipherPool.returnObject(sm4Ciphertest);
+                    }
                 }
             }).start();
         }

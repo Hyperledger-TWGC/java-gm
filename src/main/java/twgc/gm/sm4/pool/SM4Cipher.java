@@ -30,5 +30,4 @@ public class SM4Cipher {
     public Cipher getCipher(SM4ModeAndPaddingEnum sm4ModeAndPaddingEnum) {
         return cipherMap.get(sm4ModeAndPaddingEnum);
     }
-
 }
