@@ -1,6 +1,5 @@
 package twgc.gm.sm2;
 
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -99,7 +98,6 @@ public class SM2Util {
      * 生成 PKCS#10 证书请求
      *
      * @return RSA P10 证书请求 Base64 字符串
-     * @throws NoSuchAlgorithmException           当指定的密钥对算法不支持时
      * @throws InvalidAlgorithmParameterException 当采用的 ECC 算法不适用于该密钥对生成器时
      */
     public KeyPair generatekeyPair() throws InvalidAlgorithmParameterException {
@@ -192,8 +190,8 @@ public class SM2Util {
         return str.toString();
     }
 
-    public static PrivateKey loadPrivFromFile(String filename, String password) throws IOException, OperatorCreationException, PKCSException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        FileReader fr = new FileReader(new File(filename));
+    public static PrivateKey loadPrivFromFile(String filename, String password) throws IOException, OperatorCreationException, PKCSException {
+        FileReader fr = new FileReader(filename);
         PEMParser pemReader = new PEMParser(fr);
         Object obj = pemReader.readObject();
         fr.close();
@@ -215,7 +213,7 @@ public class SM2Util {
 
 
     public static PublicKey loadPublicFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        FileReader fr = new FileReader(new File(filename));
+        FileReader fr = new FileReader(filename);
         PemObject spki = new PemReader(fr).readPemObject();
         fr.close();
         return KeyFactory.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));

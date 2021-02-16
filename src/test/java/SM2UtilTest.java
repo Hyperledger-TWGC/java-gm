@@ -81,9 +81,9 @@ public class SM2UtilTest {
             e.printStackTrace();
             Assert.fail(exceptionHappened);
         }
-        Assert.assertEquals(true, pubFile.exists());
-        Assert.assertEquals(true, privFile.exists());
-        Assert.assertEquals(true, reqFile.exists());
+        Assert.assertTrue(pubFile.exists());
+        Assert.assertTrue(privFile.exists());
+        Assert.assertTrue(reqFile.exists());
     }
 
     //encrypt and decrypt

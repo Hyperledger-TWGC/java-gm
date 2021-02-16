@@ -12,8 +12,7 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 public class SM4CipherFactory extends BasePooledObjectFactory<SM4Cipher> {
     @Override
     public SM4Cipher create() throws Exception {
-        SM4Cipher chiper = new SM4Cipher();
-        return chiper;
+        return new SM4Cipher();
     }
 
     @Override

@@ -18,7 +18,7 @@ import twgc.gm.sm4.SM4ModeAndPaddingEnum;
  */
 public class SM4Cipher {
 
-    private Map<SM4ModeAndPaddingEnum, Cipher> cipherMap = new EnumMap<>(SM4ModeAndPaddingEnum.class);
+    private final Map<SM4ModeAndPaddingEnum, Cipher> cipherMap = new EnumMap<>(SM4ModeAndPaddingEnum.class);
 
     public SM4Cipher() throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
         for (SM4ModeAndPaddingEnum mode : SM4ModeAndPaddingEnum.values()) {

@@ -12,7 +12,7 @@ import org.bouncycastle.crypto.digests.SM3Digest;
  */
 public class SM3DigestFactory extends BasePooledObjectFactory<SM3Digest> {
     @Override
-    public SM3Digest create() throws Exception {
+    public SM3Digest create() {
         return new SM3Digest();
     }
 

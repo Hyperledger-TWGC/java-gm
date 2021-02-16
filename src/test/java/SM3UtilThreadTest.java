@@ -59,7 +59,7 @@ public class SM3UtilThreadTest {
             Assert.fail(exceptionHappened);
         }
         Thread.sleep(5000);
-        Assert.assertTrue(results.size() == 300);
+        Assert.assertEquals(300, results.size());
         while (!results.isEmpty()) {
             Assert.assertTrue(results.poll());
         }
