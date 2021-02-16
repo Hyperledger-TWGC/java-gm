@@ -31,8 +31,8 @@ public class SM4Util {
      * @param input                 明文数据
      * @param sm4Key                SecretKeySpec
      * @param iv                    初始向量(ECB模式下传NULL), IV must be 16 bytes long
-     * @return
-     * @throws Exception
+     * @return byte[]
+     * @throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException
      */
     public byte[] encrypt(Cipher cipher, byte[] input, SecretKeySpec sm4Key, byte[] iv) throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
             IvParameterSpec ivParameterSpec = null;
@@ -49,8 +49,8 @@ public class SM4Util {
      * @param input                 密文数据
      * @param sm4Key                SecretKeySpec
      * @param iv                    初始向量(ECB模式下传NULL), IV must be 16 bytes long
-     * @return
-     * @throws Exception
+     * @return byte[]
+     * @throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException
      */
     public byte[] decrypt(Cipher cipher, byte[] input, SecretKeySpec sm4Key, byte[] iv) throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
             IvParameterSpec ivParameterSpec = null;
@@ -68,8 +68,8 @@ public class SM4Util {
      * @param cipher                 chipher
      * @param ivParameterSpec       初始向量(ECB模式下传NULL)
      * @param mode                  1-加密；2-解密
-     * @return
-     * @throws Exception
+     * @return byte[]
+     * @throws InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException
      */
     private static byte[] sm4(byte[] input, SecretKeySpec sm4Key, Cipher cipher, IvParameterSpec ivParameterSpec, int mode) throws InvalidKeyException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException {
         if (ivParameterSpec == null) {
@@ -86,11 +86,7 @@ public class SM4Util {
     public static final int DEFAULT_KEY_SIZE = 128;
 
     public byte[] generateKey() {
-        return generateKey(DEFAULT_KEY_SIZE);
-    }
-
-    private byte[] generateKey(int keySize) {
-        kg.init(keySize, new SecureRandom());
+        kg.init(DEFAULT_KEY_SIZE, new SecureRandom());
         return kg.generateKey().getEncoded();
     }
 }

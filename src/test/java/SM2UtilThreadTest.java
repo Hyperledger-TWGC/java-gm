@@ -13,7 +13,7 @@ import twgc.gm.sm2.SM2Util;
 
 /**
  * @author Sam
- * @Description: 国密算法SM2工具类线程安全测试
+ * @description 国密算法SM2工具类线程安全测试
  * @date 2021/1/10
  */
 @FixMethodOrder(MethodSorters.JVM)
@@ -29,8 +29,8 @@ public class SM2UtilThreadTest {
     @Test
     public void threadSafeEncryptDecrypt() {
         try {
-            Queue<byte[]> results = new ConcurrentLinkedQueue<byte[]>();
-            Queue<Exception> ex = new ConcurrentLinkedQueue<Exception>();
+            Queue<byte[]> results = new ConcurrentLinkedQueue<>();
+            Queue<Exception> ex = new ConcurrentLinkedQueue<>();
             SM2Util instance = new SM2Util();
             this.keyPair = instance.generatekeyPair();
             this.pubKey = keyPair.getPublic();
@@ -53,7 +53,7 @@ public class SM2UtilThreadTest {
                 e.printStackTrace();
                 Assert.fail(exceptionHappened);
             }
-            Assert.assertTrue(results.size() == 300);
+            Assert.assertEquals(300, results.size());
             while (!results.isEmpty()) {
                 rs = results.poll();
                 Assert.assertEquals(new String(message), new String(rs));
@@ -67,7 +67,8 @@ public class SM2UtilThreadTest {
     @Test
     public void threadSafeSignVerify() {
         try {
-            Queue<Boolean> results = new ConcurrentLinkedQueue<Boolean>();
+            Queue<Boolean> results = new ConcurrentLinkedQueue<>();
+            Queue<Exception> ex = new ConcurrentLinkedQueue<>();
             SM2Util instance = new SM2Util();
             this.keyPair = instance.generatekeyPair();
             this.pubKey = keyPair.getPublic();
@@ -79,15 +80,18 @@ public class SM2UtilThreadTest {
                 new Thread(() -> {
                         try {
                             results.add(instance.verify(this.pubKey, message, signbyte));
-                        } catch (InvalidKeyException e) {
-                            e.printStackTrace();
-                        } catch (SignatureException e) {
-                            e.printStackTrace();
+                        } catch (Exception e) {
+                            ex.add(e);
                         }
                 }).start();
             }
             Thread.sleep(5000);
-            Assert.assertTrue(results.size() == 300);
+            while (!ex.isEmpty()) {
+                Exception e =  ex.poll();
+                e.printStackTrace();
+                Assert.fail(exceptionHappened);
+            }
+            Assert.assertEquals(300, results.size());
             while (!results.isEmpty()) {
                 Assert.assertTrue(results.poll());
             }

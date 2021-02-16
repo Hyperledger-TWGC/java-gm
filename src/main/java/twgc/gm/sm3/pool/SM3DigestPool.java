@@ -10,7 +10,7 @@ import org.bouncycastle.crypto.digests.SM3Digest;
  */
 public class SM3DigestPool extends GenericObjectPool<SM3Digest> {
 
-    private static SM3DigestFactory sm3DigestFactory = new SM3DigestFactory();
+    private static final SM3DigestFactory sm3DigestFactory = new SM3DigestFactory();
 
     public SM3DigestPool(int max) {
         this(1, max);

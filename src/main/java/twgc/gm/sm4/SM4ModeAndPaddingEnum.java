@@ -13,7 +13,7 @@ public enum SM4ModeAndPaddingEnum {
     SM4_CBC_PKCS5Padding("SM4/CBC/PKCS5Padding"),
     SM4_CBC_PKCS7Padding("SM4/CBC/PKCS7Padding");
 
-    private String name;
+    private final String name;
 
     SM4ModeAndPaddingEnum(String name) {
         this.name = name;

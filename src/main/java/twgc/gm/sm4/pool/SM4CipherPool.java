@@ -12,7 +12,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
  */
 public class SM4CipherPool extends GenericObjectPool<SM4Cipher> {
 
-    private static SM4CipherFactory sm4CipherFactory = new SM4CipherFactory();
+    private static final SM4CipherFactory sm4CipherFactory = new SM4CipherFactory();
 
     public SM4CipherPool(int max) {
         this(1, max);
