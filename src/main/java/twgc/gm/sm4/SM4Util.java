@@ -6,8 +6,6 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import twgc.gm.sm4.pool.SM4Cipher;
-import twgc.gm.sm4.pool.SM4CipherPool;
 
 /**
  * @author Sean
@@ -18,9 +16,8 @@ public class SM4Util {
 
     private static final String ALGORITHM_NAME = "SM4";
     private static KeyGenerator kg;
-    private static SM4CipherPool sm4CipherPool = new SM4CipherPool(10);
 
-    public SM4Util() throws NoSuchProviderException, NoSuchAlgorithmException, NoSuchPaddingException {
+    public SM4Util() throws NoSuchProviderException, NoSuchAlgorithmException {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
@@ -30,68 +27,37 @@ public class SM4Util {
     /**
      * SM4加密
      *
+     * @param cipher                cipher
      * @param input                 明文数据
-     * @param key                   密钥，SM4 requires a 128 bit key
-     * @param sm4ModeAndPaddingEnum 加密模式和padding模式
+     * @param sm4Key                SecretKeySpec
      * @param iv                    初始向量(ECB模式下传NULL), IV must be 16 bytes long
      * @return
      * @throws Exception
      */
-    public byte[] encrypt(byte[] input, byte[] key, SM4ModeAndPaddingEnum sm4ModeAndPaddingEnum, byte[] iv) throws Exception {
-        IvParameterSpec ivParameterSpec = null;
-        if (iv != null) {
-            ivParameterSpec = new IvParameterSpec(iv);
-        }
-
-        SM4Cipher sm4Cipher = null;
-        byte[] ret = null;
-        try {
-            sm4Cipher = sm4CipherPool.borrowObject();
-            Cipher cipher = sm4Cipher.getCipher(sm4ModeAndPaddingEnum);
-
-            SecretKeySpec sm4Key = new SecretKeySpec(key, ALGORITHM_NAME);
-            ret = sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.ENCRYPT_MODE);
-        } finally {
-            if (sm4Cipher != null) {
-                sm4CipherPool.returnObject(sm4Cipher);
+    public byte[] encrypt(Cipher cipher, byte[] input, SecretKeySpec sm4Key, byte[] iv) throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
+            IvParameterSpec ivParameterSpec = null;
+            if (iv != null) {
+                ivParameterSpec = new IvParameterSpec(iv);
             }
-        }
-
-        return ret;
+            return sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.ENCRYPT_MODE);
     }
 
     /**
      * SM4解密
      *
+     * @param cipher                cipher
      * @param input                 密文数据
-     * @param key                   密钥，SM4 requires a 128 bit key
-     * @param sm4ModeAndPaddingEnum 加密模式和padding模式
+     * @param sm4Key                SecretKeySpec
      * @param iv                    初始向量(ECB模式下传NULL), IV must be 16 bytes long
      * @return
      * @throws Exception
      */
-    public byte[] decrypt(byte[] input, byte[] key, SM4ModeAndPaddingEnum sm4ModeAndPaddingEnum, byte[] iv) throws Exception {
-        IvParameterSpec ivParameterSpec = null;
-        if (iv != null) {
-            ivParameterSpec = new IvParameterSpec(iv);
-        }
-
-        SM4Cipher sm4Cipher = null;
-        byte[] ret = null;
-
-        try {
-            sm4Cipher = sm4CipherPool.borrowObject();
-            Cipher cipher = sm4Cipher.getCipher(sm4ModeAndPaddingEnum);
-
-            SecretKeySpec sm4Key = new SecretKeySpec(key, ALGORITHM_NAME);
-            ret = sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.DECRYPT_MODE);
-        } finally {
-            if (sm4Cipher != null) {
-                sm4CipherPool.returnObject(sm4Cipher);
+    public byte[] decrypt(Cipher cipher, byte[] input, SecretKeySpec sm4Key, byte[] iv) throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeyException {
+            IvParameterSpec ivParameterSpec = null;
+            if (iv != null) {
+                ivParameterSpec = new IvParameterSpec(iv);
             }
-        }
-
-        return ret;
+            return sm4(input, sm4Key, cipher, ivParameterSpec, Cipher.DECRYPT_MODE);
     }
 
     /**
@@ -99,7 +65,7 @@ public class SM4Util {
      *
      * @param input                 明文或密文，与参数mode有关
      * @param sm4Key                   密钥
-     * @param cipher                 加密模式和padding模式
+     * @param cipher                 chipher
      * @param ivParameterSpec       初始向量(ECB模式下传NULL)
      * @param mode                  1-加密；2-解密
      * @return
