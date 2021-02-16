@@ -19,6 +19,7 @@ variables:
 jobs:
   - job: ut
     steps:
+      - script: gradle wrapper
       - task: Gradle@2
         inputs:
           workingDirectory: ''
