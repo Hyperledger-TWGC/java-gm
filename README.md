@@ -26,7 +26,7 @@
 | Encrypt, Decrypt | `是` |
 | PEM格式导出 |   |
 | PEM文件加密 | |
-| 分组模式 | ECB/CBC |
+| 分组模式 | ECB/CBC/CFB/OFB/CTR |
 
 
 |  SM3功能   | 支持范围  | 
