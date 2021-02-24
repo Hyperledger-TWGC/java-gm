@@ -45,7 +45,10 @@ public class SM4UtilTest {
                 {message.getBytes(StandardCharsets.UTF_8), SM4ModeAndPaddingEnum.SM4_ECB_PKCS7Padding, false},
                 {content16, SM4ModeAndPaddingEnum.SM4_CBC_NoPadding, true},
                 {message.getBytes(StandardCharsets.UTF_8), SM4ModeAndPaddingEnum.SM4_CBC_PKCS5Padding, true},
-                {message.getBytes(StandardCharsets.UTF_8), SM4ModeAndPaddingEnum.SM4_CBC_PKCS7Padding, true}
+                {message.getBytes(StandardCharsets.UTF_8), SM4ModeAndPaddingEnum.SM4_CBC_PKCS7Padding, true},
+                {message.getBytes(StandardCharsets.UTF_8), SM4ModeAndPaddingEnum.SM4_CFB_NoPadding, true},
+                {message.getBytes(StandardCharsets.UTF_8), SM4ModeAndPaddingEnum.SM4_OFB_NoPadding, true},
+                {message.getBytes(StandardCharsets.UTF_8), SM4ModeAndPaddingEnum.SM4_CTR_NoPadding, true}
         };
         return Arrays.asList(object);
     }
