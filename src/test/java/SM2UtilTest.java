@@ -261,4 +261,5 @@ public class SM2UtilTest {
             e.printStackTrace();
         }
     }
+
 }
