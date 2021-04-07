@@ -253,4 +253,12 @@ public class SM2UtilTest {
 
     }
 
+    // 静态代码块，避免运行 generateFile() 后再次运行报错
+    static {
+        try {
+            Security.addProvider(new BouncyCastleProvider());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
