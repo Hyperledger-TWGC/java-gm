@@ -2,9 +2,11 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.bouncycastle.crypto.digests.SM3Digest;
 import org.junit.Assert;
 import org.junit.Test;
-
+import twgc.gm.sm3.SM3Util;
+import twgc.gm.sm3.pool.SM3DigestPool;
 
 
 /**
@@ -17,18 +19,47 @@ public class SM3UtilThreadTest {
     static int randomData = 128;
     static byte[] message = RandomStringUtils.random(randomData).getBytes();
 
+    static SM3DigestPool sm3DigestPool = new SM3DigestPool(10);
+    static String exceptionHappened = "Exception happened";
+
     @Test
-    public void hashAndVerify() throws InterruptedException {
-        Queue<Boolean> results = new ConcurrentLinkedQueue<Boolean>();
-        byte[] hashVal = SM3Util.hash(message);
-        Assert.assertTrue(SM3Util.verify(message, hashVal));
+    public void hashAndVerify() throws Exception {
+        Queue<Boolean> results = new ConcurrentLinkedQueue<>();
+        Queue<Exception> ex = new ConcurrentLinkedQueue<>();
+        SM3Digest sm3Digest = null;
+        try {
+            sm3Digest = sm3DigestPool.borrowObject();
+            byte[] hashVal = SM3Util.hash(sm3Digest, message);
+            Assert.assertTrue(SM3Util.verify(sm3Digest, message, hashVal));
+        } finally {
+            if (sm3Digest != null) {
+                sm3DigestPool.returnObject(sm3Digest);
+            }
+        }
+
         for (int i = 0; i < 300; i++) {
             new Thread(() -> {
-                    results.add(SM3Util.verify(message, hashVal));
+                SM3Digest sm3DigestInThead = null;
+                try {
+                    sm3DigestInThead = sm3DigestPool.borrowObject();
+                    byte[] hashValInThread = SM3Util.hash(sm3DigestInThead, message);
+                    results.add(SM3Util.verify(sm3DigestInThead, message, hashValInThread));
+                } catch (Exception e) {
+                    ex.add(e);
+                } finally {
+                    if (sm3DigestInThead != null) {
+                        sm3DigestPool.returnObject(sm3DigestInThead);
+                    }
+                }
             }).start();
         }
+        while (!ex.isEmpty()) {
+            Exception e =  ex.poll();
+            e.printStackTrace();
+            Assert.fail(exceptionHappened);
+        }
         Thread.sleep(5000);
-        Assert.assertTrue(results.size() == 300);
+        Assert.assertEquals(300, results.size());
         while (!results.isEmpty()) {
             Assert.assertTrue(results.poll());
         }

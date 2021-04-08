@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import twgc.gm.sm2.SM2Util;
 
 import static cert.SM2X509CertMaker.*;
 
