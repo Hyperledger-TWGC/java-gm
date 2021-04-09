@@ -1,8 +1,6 @@
 package twgc.gm.sm2;
+
 import java.io.*;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateEncodingException;
@@ -103,6 +101,7 @@ public class SM2Util {
      * 生成 PKCS#10 证书请求
      *
      * @return RSA P10 证书请求 Base64 字符串
+     * @throws NoSuchAlgorithmException           当指定的密钥对算法不支持时
      * @throws InvalidAlgorithmParameterException 当采用的 ECC 算法不适用于该密钥对生成器时
      */
     public KeyPair generatekeyPair() throws InvalidAlgorithmParameterException {
@@ -149,6 +148,14 @@ public class SM2Util {
         ContentSigner signer = new JcaContentSignerBuilder("SM3withSM2").build(keyPair.getPrivate());
         PKCS10CertificationRequestBuilder builder = new JcaPKCS10CertificationRequestBuilder(subject, keyPair.getPublic());
         return builder.build(signer);
+    }
+
+    public static PKCS10CertificationRequest generateCSR(X500Name subject, PublicKey pubKey, PrivateKey priKey) throws OperatorCreationException {
+
+        PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(subject, pubKey);
+        ContentSigner signerBuilder = new JcaContentSignerBuilder("SM3WITHSM2")
+                .setProvider(BouncyCastleProvider.PROVIDER_NAME).build(priKey);
+        return csrBuilder.build(signerBuilder);
     }
 
     public static String pemFrom(PrivateKey privateKey, String password) throws OperatorCreationException, IOException {
@@ -243,16 +250,29 @@ public class SM2Util {
                 BouncyCastleProvider.CONFIGURATION);
     }
 
-    public static X509Certificate loadX509CertificateFromFile(String filename) throws IOException, CertificateException,
+    public static X509Certificate getX509Certificate(String certFilePath) throws IOException, CertificateException,
             NoSuchProviderException {
-        FileInputStream in = null;
+        InputStream is = null;
         try {
-            in = new FileInputStream(filename);
+            is = new FileInputStream(certFilePath);
             CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
-            return (X509Certificate) cf.generateCertificate(in);
+            return (X509Certificate) cf.generateCertificate(is);
         } finally {
-            in.close();
+            if (is != null) {
+                is.close();
+            }
         }
     }
 
+    public static X509Certificate getX509Certificate(byte[] certBytes) throws CertificateException,
+            NoSuchProviderException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(certBytes);
+        return getX509Certificate(bais);
+    }
+
+    public static X509Certificate getX509Certificate(InputStream is) throws CertificateException,
+            NoSuchProviderException {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
+        return (X509Certificate) cf.generateCertificate(is);
+    }
 }
