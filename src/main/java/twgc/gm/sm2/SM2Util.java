@@ -1,10 +1,15 @@
 package twgc.gm.sm2;
 
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -190,6 +195,16 @@ public class SM2Util {
         return str.toString();
     }
 
+    public static String pemFrom(X509Certificate x509Certificate) throws IOException, CertificateEncodingException {
+        PemObject pem = new PemObject("CERTIFICATE", x509Certificate.getEncoded());
+        StringWriter str = new StringWriter();
+        PemWriter pemWriter = new PemWriter(str);
+        pemWriter.writeObject(pem);
+        pemWriter.close();
+        str.close();
+        return str.toString();
+    }
+
     public static PrivateKey loadPrivFromFile(String filename, String password) throws IOException, OperatorCreationException, PKCSException {
         FileReader fr = new FileReader(filename);
         PEMParser pemReader = new PEMParser(fr);
@@ -217,6 +232,18 @@ public class SM2Util {
         PemObject spki = new PemReader(fr).readPemObject();
         fr.close();
         return KeyFactory.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
+    }
+
+    public static X509Certificate loadX509CertificateFromFile(String filename) throws IOException, CertificateException,
+            NoSuchProviderException {
+        FileInputStream in = null;
+        try {
+            in = new FileInputStream(filename);
+            CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
+            return (X509Certificate) cf.generateCertificate(in);
+        } finally {
+            in.close();
+        }
     }
 
     public static PublicKey derivePublicFromPrivate(PrivateKey privateKey) {
