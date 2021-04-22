@@ -49,9 +49,6 @@ public class SM2X509CertMaker {
 
     /**
      * @param issuerKeyPair 证书颁发者的密钥对。
-     *                      其实一般的CA的私钥都是要严格保护的。
-     *                      一般CA的私钥都会放在加密卡/加密机里，证书的签名由加密卡/加密机完成。
-     *                      这里仅是为了演示BC库签发证书的用法，所以暂时不作太多要求。
      * @param certExpire    证书有效时间，单位毫秒
      * @param issuer        证书颁发者信息
      * @param snAllocator   维护/分配证书序列号的实例，证书序列号应该递增且不重复
@@ -65,11 +62,9 @@ public class SM2X509CertMaker {
     }
 
     /**
-     * 生成根CA证书
-     *
-     * @param csr CSR
-     * @return 新的证书
-     * @throws Exception 如果错误发生
+     * 生成RootCA证书
+     * @param csr
+     * @throws Exception
      */
     public X509Certificate makeRootCACert(byte[] csr)
             throws Exception {
@@ -81,7 +76,6 @@ public class SM2X509CertMaker {
      * 生成SubCA证书
      *
      * @param csr CSR
-     * @return 新的证书
      * @throws Exception 如果错误发生
      */
     public X509Certificate makeSubCACert(byte[] csr)
