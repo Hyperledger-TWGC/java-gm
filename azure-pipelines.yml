@@ -17,6 +17,9 @@ variables:
   - group: TWGC
 
 jobs:
+  - job: gradleWithoutWrapper
+    steps:
+      - script: gradle build
   - job: ut
     steps:
       - script: gradle wrapper
