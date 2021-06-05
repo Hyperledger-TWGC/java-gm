@@ -58,12 +58,13 @@ import org.bouncycastle.util.io.pem.PemWriter;
  */
 public class SM2Util {
 
-    public SM2Util() throws NoSuchProviderException, NoSuchAlgorithmException {
+    public SM2Util() throws NoSuchProviderException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
         signature = Signature.getInstance(SM3SM2_VALUE, BouncyCastleProvider.PROVIDER_NAME);
         generator = KeyPairGenerator.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME);
+        generator.initialize(new ECGenParameterSpec(CURVE_NAME));
     }
 
     public SM2Engine getSm2Engine() {
@@ -100,8 +101,7 @@ public class SM2Util {
      * @return RSA P10 证书请求 Base64 字符串
      * @throws InvalidAlgorithmParameterException 当采用的 ECC 算法不适用于该密钥对生成器时
      */
-    public KeyPair generatekeyPair() throws InvalidAlgorithmParameterException {
-        generator.initialize(new ECGenParameterSpec(CURVE_NAME));
+    public KeyPair generatekeyPair() {
         return generator.generateKeyPair();
     }
 

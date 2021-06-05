@@ -1,4 +1,6 @@
 import java.security.*;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -98,6 +100,20 @@ public class SM2UtilThreadTest {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail(exceptionHappened);
+        }
+    }
+
+    @Test
+    public void testKeyGen() {
+        try {
+            SM2Util instance = new SM2Util();
+            Instant start = Instant.now();
+            for (int i = 0; i < 1000; i++) {
+                instance.generatekeyPair();
+            }
+            System.out.println("cost ms: " + Duration.between(start, Instant.now()).toMillis());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
