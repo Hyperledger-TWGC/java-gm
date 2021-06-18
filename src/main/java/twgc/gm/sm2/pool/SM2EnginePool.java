@@ -10,14 +10,12 @@ import org.bouncycastle.crypto.engines.SM2Engine;
  */
 public class SM2EnginePool extends GenericObjectPool<SM2Engine> {
 
-    private static final SM2EngineFactory sm2EngineFactory = new SM2EngineFactory();
-
-    public SM2EnginePool(int max) {
-        this(1, max);
+    public SM2EnginePool(int max, SM2Engine.Mode mode) {
+        this(1, max, mode);
     }
 
-    public SM2EnginePool(int init, int max) {
-        super(sm2EngineFactory);
+    public SM2EnginePool(int init, int max, SM2Engine.Mode mode) {
+        super(new SM2EngineFactory(mode));
         setMaxTotal(max);
         setMinIdle(init);
     }

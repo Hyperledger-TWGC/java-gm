@@ -12,9 +12,15 @@ import org.bouncycastle.crypto.engines.SM2Engine;
  */
 public class SM2EngineFactory extends BasePooledObjectFactory<SM2Engine> {
 
+    private SM2Engine.Mode mode;
+
+    protected SM2EngineFactory(SM2Engine.Mode mode) {
+        this.mode = mode;
+    }
+
     @Override
-    public SM2Engine create() throws Exception {
-        return new SM2Engine(SM2Engine.Mode.C1C3C2);
+    public SM2Engine create() {
+        return new SM2Engine(mode);
     }
 
     @Override

@@ -15,6 +15,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import twgc.gm.sm2.SM2Util;
+import twgc.gm.sm2.pool.SM2EnginePool;
 
 
 @FixMethodOrder(MethodSorters.JVM)
@@ -89,9 +90,11 @@ public class SM2UtilTest {
     //encrypt and decrypt
     @Test
     public void encryptAndDecryptC1C3C2() {
+        SM2EnginePool sm2EnginePool = new SM2EnginePool(1, SM2Engine.Mode.C1C3C2);
+        SM2Engine sm2Engine = null;
         try {
             SM2Util instance = new SM2Util();
-            SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C3C2);
+            sm2Engine = sm2EnginePool.borrowObject();
             byte[] encrypted = instance.encrypt(sm2Engine, this.pubKey, message);
             byte[] rs = instance.decrypt(sm2Engine, this.privKey, encrypted);
             Assert.assertEquals(new String(message), new String(rs));
@@ -101,15 +104,21 @@ public class SM2UtilTest {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail(exceptionHappened);
+        } finally {
+            if (sm2Engine != null) {
+                sm2EnginePool.returnObject(sm2Engine);
+            }
         }
     }
 
     //encrypt and decrypt
     @Test
     public void encryptAndDecryptC1C2C3() {
+        SM2EnginePool sm2EnginePool = new SM2EnginePool(1, SM2Engine.Mode.C1C2C3);
+        SM2Engine sm2Engine = null;
         try {
             SM2Util instance = new SM2Util();
-            SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C2C3);
+            sm2Engine = sm2EnginePool.borrowObject();
             byte[] encrypted = instance.encrypt(sm2Engine, this.pubKey, message);
             byte[] rs = instance.decrypt(sm2Engine, this.privKey, encrypted);
             Assert.assertEquals(new String(message), new String(rs));
@@ -119,6 +128,10 @@ public class SM2UtilTest {
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail(exceptionHappened);
+        } finally {
+            if (sm2Engine != null) {
+                sm2EnginePool.returnObject(sm2Engine);
+            }
         }
     }
 
