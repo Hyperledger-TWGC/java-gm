@@ -1,16 +1,20 @@
-import java.security.*;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.crypto.engines.SM2Engine;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import twgc.gm.sm2.SM2Util;
+import twgc.gm.sm2.pool.SM2EnginePool;
 
 
 /**
@@ -24,6 +28,7 @@ public class SM2UtilThreadTest {
     static String exceptionHappened = "Exception happened";
     static int randomData = 128;
     static byte[] message = RandomStringUtils.random(randomData).getBytes();
+    static SM2EnginePool sm2EnginePool = new SM2EnginePool(8, SM2Engine.Mode.C1C3C2);
     PublicKey pubKey;
     PrivateKey privKey;
     KeyPair keyPair;
@@ -37,25 +42,54 @@ public class SM2UtilThreadTest {
             this.keyPair = instance.generatekeyPair();
             this.pubKey = keyPair.getPublic();
             this.privKey = keyPair.getPrivate();
-            byte[] encrypted = instance.encrypt(this.pubKey, message);
-            byte[] rs = instance.decrypt(this.privKey, encrypted);
+
+            SM2Engine sm2Engine = sm2EnginePool.borrowObject();
+            byte[] encrypted = instance.encrypt(sm2Engine, this.pubKey, message);
+            byte[] rs = instance.decrypt(sm2Engine, this.privKey, encrypted);
             Assert.assertEquals(new String(message), new String(rs));
-            for (int i = 0; i < 300; i++) {
+            sm2EnginePool.returnObject(sm2Engine);
+
+            int threadNum = 300;
+            final CountDownLatch startGate = new CountDownLatch(1);
+            final CountDownLatch endGate  = new CountDownLatch(threadNum);
+            for (int i = 0; i < threadNum; i++) {
                 new Thread(() -> {
                     try {
-                        results.add(instance.decrypt(this.privKey, encrypted));
-                    } catch (InvalidCipherTextException e) {
-                        ex.add(e);
+                        startGate.await();
+                        SM2Engine sm2Engine1 = null;
+                        try {
+                            sm2Engine1 = sm2EnginePool.borrowObject();
+                            results.add(instance.decrypt(sm2Engine1, this.privKey, encrypted));
+                        } catch (Exception e) {
+                            ex.add(e);
+                        } finally {
+                            if (sm2Engine1 != null) {
+                                sm2EnginePool.returnObject(sm2Engine1);
+                            }
+                            endGate.countDown();
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }).start();
             }
-            Thread.sleep(5000);
+
+            long start =  System.currentTimeMillis();
+            startGate.countDown();
+            try {
+                endGate.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            long end = System.currentTimeMillis();
+            System.out.println("cost times :" + (end - start));
+
             while (!ex.isEmpty()) {
                 Exception e =  ex.poll();
                 e.printStackTrace();
                 Assert.fail(exceptionHappened);
             }
-            Assert.assertEquals(300, results.size());
+            Assert.assertEquals(threadNum, results.size());
             while (!results.isEmpty()) {
                 rs = results.poll();
                 Assert.assertEquals(new String(message), new String(rs));
@@ -116,5 +150,4 @@ public class SM2UtilThreadTest {
             e.printStackTrace();
         }
     }
-
 }

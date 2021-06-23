@@ -67,14 +67,6 @@ public class SM2Util {
         generator.initialize(new ECGenParameterSpec(CURVE_NAME));
     }
 
-    public SM2Engine getSm2Engine() {
-        return sm2Engine;
-    }
-
-    public void setSm2Engine(SM2Engine sm2Engine) {
-        this.sm2Engine = sm2Engine;
-    }
-
     public Signature getSignature() {
         return signature;
     }
@@ -83,7 +75,6 @@ public class SM2Util {
         this.signature = signature;
     }
 
-    private SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C3C2);
     private Signature signature;
     private static final String EC_VALUE = "EC";
     private static final String SM3SM2_VALUE = "SM3WITHSM2";
@@ -105,28 +96,23 @@ public class SM2Util {
         return generator.generateKeyPair();
     }
 
-    public byte[] encrypt(PublicKey publicKey, byte[] message) throws InvalidCipherTextException {
-        synchronized (this) {
-            BCECPublicKey localECPublicKey = (BCECPublicKey) publicKey;
-            ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(localECPublicKey.getQ(), EC_DOMAIN_PARAMETERS);
-            sm2Engine.init(true, new ParametersWithRandom(ecPublicKeyParameters, new SecureRandom()));
-            return sm2Engine.processBlock(message, 0, message.length);
-        }
+    public byte[] encrypt(SM2Engine sm2Engine, PublicKey publicKey, byte[] message) throws InvalidCipherTextException {
+        BCECPublicKey localECPublicKey = (BCECPublicKey) publicKey;
+        ECPublicKeyParameters ecPublicKeyParameters = new ECPublicKeyParameters(localECPublicKey.getQ(), EC_DOMAIN_PARAMETERS);
+        sm2Engine.init(true, new ParametersWithRandom(ecPublicKeyParameters, SecureRandomFactory.getSecureRandom()));
+        return sm2Engine.processBlock(message, 0, message.length);
     }
 
-    public byte[] decrypt(PrivateKey privateKey, byte[] message) throws InvalidCipherTextException {
-        synchronized (this) {
-            BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
-            ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(localECPrivateKey.getD(), EC_DOMAIN_PARAMETERS);
-            sm2Engine.init(false, ecPrivateKeyParameters);
-            return sm2Engine.processBlock(message, 0, message.length);
-        }
+    public byte[] decrypt(SM2Engine sm2Engine, PrivateKey privateKey, byte[] message) throws InvalidCipherTextException {
+        BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
+        ECPrivateKeyParameters ecPrivateKeyParameters = new ECPrivateKeyParameters(localECPrivateKey.getD(), EC_DOMAIN_PARAMETERS);
+        sm2Engine.init(false, ecPrivateKeyParameters);
+        return sm2Engine.processBlock(message, 0, message.length);
     }
-
 
     public byte[] sign(PrivateKey privateKey, byte[] message) throws SignatureException, InvalidKeyException {
         synchronized (this) {
-            signature.initSign(privateKey, new SecureRandom());
+            signature.initSign(privateKey, SecureRandomFactory.getSecureRandom());
             signature.update(message);
             return signature.sign();
         }
@@ -151,7 +137,7 @@ public class SM2Util {
         if (password != null && password.length() > 0) {
             encryptor = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC)
                     .setProvider(BouncyCastleProvider.PROVIDER_NAME)
-                    .setRandom(new SecureRandom())
+                    .setRandom(SecureRandomFactory.getSecureRandom())
                     .setPasssword(password.toCharArray())
                     .build();
         }
