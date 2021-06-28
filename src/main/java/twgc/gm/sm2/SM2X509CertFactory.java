@@ -1,8 +1,9 @@
-package twgc.gm.cert;
+package twgc.gm.sm2;
 
+import java.io.IOException;
 import java.math.BigInteger;
-import java.security.KeyPair;
-import java.security.PublicKey;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Date;
@@ -21,8 +22,10 @@ import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import twgc.gm.Const;
 
 /**
  * @author liqs
@@ -30,7 +33,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
  * @date 2021/1/19 14:26
  * ref：https://github.com/ZZMarquis/gmhelper
  */
-public class SM2X509CertMaker {
+public class SM2X509CertFactory {
 
     private enum CertLevel {
         RootCA,
@@ -38,86 +41,77 @@ public class SM2X509CertMaker {
         EndEntity
     } // class CertLevel
 
-    private static final String SIGN_ALGO_SM3WITHSM2 = "SM3WITHSM2";
-    private long certExpire;
     private X500Name issuerDN;
-    private CertSNAllocator snAllocator;
     private KeyPair issuerKeyPair;
     private String commonName;
     private List<GeneralName> subjectAltNames = new LinkedList<>();
     private boolean selfSignedEECert;
-
+    private JcaX509ExtensionUtils extUtils;
     /**
      * @param issuerKeyPair 证书颁发者的密钥对。
-     * @param certExpire    证书有效时间，单位毫秒
      * @param issuer        证书颁发者信息
-     * @param snAllocator   维护/分配证书序列号的实例，证书序列号应该递增且不重复
      */
-    public SM2X509CertMaker(KeyPair issuerKeyPair, long certExpire, X500Name issuer,
-                            CertSNAllocator snAllocator) {
+    public SM2X509CertFactory(KeyPair issuerKeyPair, X500Name issuer) throws NoSuchAlgorithmException {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
         this.issuerKeyPair = issuerKeyPair;
-        this.certExpire = certExpire;
         this.issuerDN = issuer;
-        this.snAllocator = snAllocator;
+        this.extUtils = new JcaX509ExtensionUtils();
     }
 
     /**
      * 生成RootCA证书
      * @param csr
+     * @param mail
      * @throws Exception
      */
-    public X509Certificate makeRootCACert(byte[] csr)
-            throws Exception {
+    public X509Certificate rootCACert(byte[] csr, String mail,
+                                      BigInteger serial,
+                                      Date notBefore,
+                                      Date notAfter) throws OperatorCreationException, InvalidKeyException, NoSuchAlgorithmException, IOException, SignatureException, NoSuchProviderException, CertificateException {
         KeyUsage usage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
-        return makeCertificate(CertLevel.RootCA, null, csr, usage, null);
+        PKCS10CertificationRequest request = new PKCS10CertificationRequest(csr);
+        X509v3CertificateBuilder v3CertGen = genX509v3CertificateBuilder(CertLevel.RootCA, request, mail, serial, notBefore, notAfter);
+        if (!selfSignedEECert) {
+            v3CertGen.addExtension(Extension.authorityKeyIdentifier, false,
+                    extUtils.createAuthorityKeyIdentifier(SubjectPublicKeyInfo.getInstance(issuerKeyPair.getPublic().getEncoded())));
+        }
+        BasicConstraints basicConstraints = new BasicConstraints(true);
+        return certificate(CertLevel.RootCA, usage, null, basicConstraints, request, v3CertGen);
     }
 
     /**
      * 生成SubCA证书
      *
      * @param csr CSR
+     * @param mail
      * @throws Exception 如果错误发生
      */
-    public X509Certificate makeSubCACert(byte[] csr)
-            throws Exception {
+    public X509Certificate subCACert(byte[] csr, String mail,
+                                     BigInteger serial,
+                                     Date notBefore,
+                                     Date notAfter) throws OperatorCreationException, InvalidKeyException, NoSuchAlgorithmException, IOException, SignatureException, NoSuchProviderException, CertificateException {
         KeyUsage usage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
-        return makeCertificate(CertLevel.SubCA, 0, csr, usage, null);
+        BasicConstraints basicConstraints = new BasicConstraints(0);
+        PKCS10CertificationRequest request = new PKCS10CertificationRequest(csr);
+        X509v3CertificateBuilder v3CertGen = genX509v3CertificateBuilder(CertLevel.SubCA, request, mail, serial, notBefore, notAfter);
+        return certificate(CertLevel.SubCA, usage, null, basicConstraints, request, v3CertGen);
     }
 
-    /**
-     *
-     * @param certLevel
-     * @param pathLenConstrain
-     * @param csr               CSR
-     * @param keyUsage          证书用途
-     * @param extendedKeyUsages
-     * @return
-     * @throws Exception
-     */
-    private X509Certificate makeCertificate(CertLevel certLevel, Integer pathLenConstrain,
-                                            byte[] csr, KeyUsage keyUsage, KeyPurposeId[] extendedKeyUsages) throws Exception {
+    private X509Certificate certificate(CertLevel certLevel,
+                                        KeyUsage keyUsage, KeyPurposeId[] extendedKeyUsages,
+                                        BasicConstraints basicConstraints,
+                                        PKCS10CertificationRequest request,
+                                        X509v3CertificateBuilder v3CertGen) throws IOException, OperatorCreationException, CertificateException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         if (certLevel == CertLevel.EndEntity) {
             if (keyUsage.hasUsages(KeyUsage.keyCertSign)) {
-                throw new IllegalArgumentException("keyusage keyCertSign is not allowed in EndEntity Certificate");
+                throw new IllegalArgumentException("key usage keyCertSign is not allowed in EndEntity Certificate");
             }
         }
-        PKCS10CertificationRequest request = new PKCS10CertificationRequest(csr);
+
         SubjectPublicKeyInfo subPub = request.getSubjectPublicKeyInfo();
-        X509v3CertificateBuilder v3CertGen = genX509v3CertificateBuilder(certLevel, request);
-
-        JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
         v3CertGen.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(subPub));
-        if (certLevel != CertLevel.RootCA && !selfSignedEECert) {
-            v3CertGen.addExtension(Extension.authorityKeyIdentifier, false,
-                    extUtils.createAuthorityKeyIdentifier(SubjectPublicKeyInfo.getInstance(issuerKeyPair.getPublic().getEncoded())));
-        }
-
-        BasicConstraints basicConstraints;
-        if (certLevel == CertLevel.EndEntity) {
-            basicConstraints = new BasicConstraints(false);
-        } else {
-            basicConstraints = pathLenConstrain == null ? new BasicConstraints(true) : new BasicConstraints(pathLenConstrain.intValue());
-        }
         v3CertGen.addExtension(Extension.basicConstraints, true, basicConstraints);
         v3CertGen.addExtension(Extension.keyUsage, true, keyUsage);
 
@@ -146,27 +140,33 @@ public class SM2X509CertMaker {
         }
 
         JcaContentSignerBuilder contentSignerBuilder = makeContentSignerBuilder(issuerKeyPair.getPublic());
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME)
-                .getCertificate(v3CertGen.build(contentSignerBuilder.build(issuerKeyPair.getPrivate())));
-        cert.verify(issuerKeyPair.getPublic());
-        return cert;
+        if (contentSignerBuilder != null) {
+            X509Certificate cert = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME)
+                    .getCertificate(v3CertGen.build(contentSignerBuilder.build(issuerKeyPair.getPrivate())));
+            cert.verify(issuerKeyPair.getPublic());
+            return cert;
+        }
+        return null;
     }
 
-    private JcaContentSignerBuilder makeContentSignerBuilder(PublicKey issPub) throws Exception {
-        if (issPub.getAlgorithm().equals("EC")) {
-            JcaContentSignerBuilder contentSignerBuilder = new JcaContentSignerBuilder(SIGN_ALGO_SM3WITHSM2);
+    private JcaContentSignerBuilder makeContentSignerBuilder(PublicKey issPub) {
+        if (issPub.getAlgorithm().equals(Const.EC_VALUE)) {
+            JcaContentSignerBuilder contentSignerBuilder = new JcaContentSignerBuilder(Const.SM3SM2_VALUE);
             contentSignerBuilder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
             return contentSignerBuilder;
         }
-        throw new Exception("Unsupported PublicKey Algorithm:" + issPub.getAlgorithm());
+        return null;
     }
 
-    private X509v3CertificateBuilder genX509v3CertificateBuilder(CertLevel certLevel, PKCS10CertificationRequest request) throws Exception {
+    private X509v3CertificateBuilder genX509v3CertificateBuilder(CertLevel certLevel,
+                                                                 PKCS10CertificationRequest request,
+                                                                 String email,
+                                                                 BigInteger serial,
+                                                                 Date notBefore,
+                                                                 Date notAfter) {
 
         SubjectPublicKeyInfo subPub = request.getSubjectPublicKeyInfo();
-
         X500Name subject = request.getSubject();
-        String email = null;
         /*
          * RFC 5280 §4.2.1.6 Subject
          *  Conforming implementations generating new certificates with
@@ -220,12 +220,8 @@ public class SM2X509CertMaker {
                     subject = issuerDN;
                 }
         }
-
-        BigInteger serialNumber = snAllocator.nextSerialNumber();
-        Date notBefore = new Date();
-        Date notAfter = new Date(notBefore.getTime() + certExpire);
         return new X509v3CertificateBuilder(
-                issuerDN, serialNumber,
+                issuerDN, serial,
                 notBefore, notAfter,
                 subject, subPub);
     }

@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.X509Certificate;
+import java.util.Date;
 import javax.security.auth.x500.X500Principal;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -21,8 +22,8 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import twgc.gm.cert.CertSNAllocator;
 import twgc.gm.cert.RandomSNAllocator;
-import twgc.gm.cert.SM2X509CertMaker;
 import twgc.gm.sm2.SM2Util;
+import twgc.gm.sm2.SM2X509CertFactory;
 import twgc.gm.sm2.pool.SM2EnginePool;
 
 
@@ -57,8 +58,13 @@ public class SM2UtilTest {
     public static X509Certificate genCertificate(KeyPair keyPair, PKCS10CertificationRequest csr, X500Name x500Name) throws Exception {
         long certExpire = 20L * 365 * 24 * 60 * 60 * 1000;
         CertSNAllocator snAllocator = new RandomSNAllocator();
-        SM2X509CertMaker rootCertMaker = new SM2X509CertMaker(keyPair, certExpire, x500Name, snAllocator);
-        return rootCertMaker.makeRootCACert(csr.getEncoded());
+        SM2X509CertFactory rootCertFactory = new SM2X509CertFactory(keyPair, x500Name);
+        Date now = new Date();
+        return rootCertFactory.rootCACert(csr.getEncoded(),
+                "test@twgc.com",
+                snAllocator.nextSerialNumber(),
+                now,
+                new Date(now.getDate() + certExpire));
     }
 
     public static void savePemFormatKeyFile(PrivateKey privateKey, String filename) throws IOException, OperatorCreationException {
@@ -242,24 +248,38 @@ public class SM2UtilTest {
         // one 模拟根 CA 自签名生成根证书 rootCACert
         KeyPair rootKeyPair = sm2Util.generatekeyPair();
         X500Name rootX500Name = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "Root CA").build();
-        SM2X509CertMaker rootCertMaker = new SM2X509CertMaker(rootKeyPair, certExpire, rootX500Name, snAllocator);
+        SM2X509CertFactory rootCertMaker = new SM2X509CertFactory(rootKeyPair, rootX500Name);
         PublicKey rootKeyPairPublic = rootKeyPair.getPublic();
         byte[] rootcsr = SM2Util.generateCSR(rootKeyPair, new X500Principal(String.valueOf(rootX500Name))).getEncoded();
-        X509Certificate rootCACert = rootCertMaker.makeRootCACert(rootcsr);
+        Date now = new Date();
+        X509Certificate rootCACert = rootCertMaker.rootCACert(rootcsr,
+                "test@twgc.com",
+                snAllocator.nextSerialNumber(),
+                now,
+                new Date(now.getDate() + certExpire));
 
         // two 模拟根 CA 生成中间证书
         KeyPair midKeyPair = sm2Util.generatekeyPair();
         PublicKey midKeyPairPublic = midKeyPair.getPublic();
         X500Name midX500Name = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "Intermediate CA").build();
         byte[] midcsr = SM2Util.generateCSR(midKeyPair, new X500Principal(String.valueOf(midX500Name))).getEncoded();
-        X509Certificate midCACert = rootCertMaker.makeSubCACert(midcsr);
+        X509Certificate midCACert = rootCertMaker.subCACert(midcsr,
+                "test1@twgc.com",
+                snAllocator.nextSerialNumber(),
+                now,
+                new Date(now.getDate() + certExpire)
+        );
 
         // three 模拟中间 CA 生成用户证书
-        SM2X509CertMaker midCertMaker = new SM2X509CertMaker(midKeyPair, certExpire, midX500Name, snAllocator);
+        SM2X509CertFactory midCertMaker = new SM2X509CertFactory(midKeyPair, midX500Name);
         KeyPair userKeyPair = sm2Util.generatekeyPair();
         X500Name userX500Name = new X500NameBuilder(BCStyle.INSTANCE).addRDN(BCStyle.CN, "User CA").build();
         byte[] usercsr = SM2Util.generateCSR(userKeyPair, new X500Principal(String.valueOf(userX500Name))).getEncoded();
-        X509Certificate userCACert = midCertMaker.makeSubCACert(usercsr);
+        X509Certificate userCACert = midCertMaker.subCACert(usercsr,
+                "test2@twgc.com",
+                snAllocator.nextSerialNumber(),
+                now,
+                new Date(now.getDate() + certExpire));
 
         // 根证书自签名，用自己的公钥验证
         rootCACert.verify(rootKeyPairPublic, BouncyCastleProvider.PROVIDER_NAME);
@@ -270,7 +290,6 @@ public class SM2UtilTest {
 
     }
 
-    // 静态代码块，避免运行 generateFile() 后再次运行报错
     static {
         try {
             Security.addProvider(new BouncyCastleProvider());

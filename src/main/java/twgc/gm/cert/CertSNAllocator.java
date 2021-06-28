@@ -9,5 +9,5 @@ import java.math.BigInteger;
  * ref：https://github.com/ZZMarquis/gmhelper
  */
 public interface CertSNAllocator {
-    BigInteger nextSerialNumber() throws Exception;
+    BigInteger nextSerialNumber();
 }

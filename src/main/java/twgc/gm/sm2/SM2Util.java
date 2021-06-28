@@ -47,6 +47,7 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.bouncycastle.util.io.pem.PemWriter;
+import twgc.gm.Const;
 
 /**
  * @author SamYuan; 吴仙杰
@@ -67,9 +68,9 @@ public class SM2Util {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
-        signature = Signature.getInstance(SM3SM2_VALUE, BouncyCastleProvider.PROVIDER_NAME);
-        generator = KeyPairGenerator.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME);
-        generator.initialize(new ECGenParameterSpec(CURVE_NAME));
+        signature = Signature.getInstance(Const.SM3SM2_VALUE, BouncyCastleProvider.PROVIDER_NAME);
+        generator = KeyPairGenerator.getInstance(Const.EC_VALUE, BouncyCastleProvider.PROVIDER_NAME);
+        generator.initialize(new ECGenParameterSpec(Const.CURVE_NAME));
     }
 
     public Signature getSignature() {
@@ -81,10 +82,7 @@ public class SM2Util {
     }
 
     private Signature signature;
-    private static final String EC_VALUE = "EC";
-    private static final String SM3SM2_VALUE = "SM3WITHSM2";
-    private static final String CURVE_NAME = "sm2p256v1";
-    private static final X9ECParameters X_9_EC_PARAMETERS = GMNamedCurves.getByName(CURVE_NAME);
+    private static final X9ECParameters X_9_EC_PARAMETERS = GMNamedCurves.getByName(Const.CURVE_NAME);
     private static final ECDomainParameters EC_DOMAIN_PARAMETERS = new ECDomainParameters(X_9_EC_PARAMETERS.getCurve(), X_9_EC_PARAMETERS.getG(), X_9_EC_PARAMETERS.getN());
     private static final ECParameterSpec PARAMETER_SPEC = new ECParameterSpec(X_9_EC_PARAMETERS.getCurve(), X_9_EC_PARAMETERS.getG(), X_9_EC_PARAMETERS.getN());
     private static KeyPairGenerator generator;
@@ -217,25 +215,22 @@ public class SM2Util {
         FileReader fr = new FileReader(filename);
         PemObject spki = new PemReader(fr).readPemObject();
         fr.close();
-        return KeyFactory.getInstance(EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
+        Provider p = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
+        return KeyFactory.getInstance(Const.EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
     }
 
     public static X509Certificate loadX509CertificateFromFile(String filename) throws IOException, CertificateException,
             NoSuchProviderException {
-        FileInputStream in = null;
-        try {
+            FileInputStream in = null;
             in = new FileInputStream(filename);
             CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
             return (X509Certificate) cf.generateCertificate(in);
-        } finally {
-            in.close();
-        }
     }
 
     public static PublicKey derivePublicFromPrivate(PrivateKey privateKey) {
         BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
         BigInteger d = localECPrivateKey.getD();
-        ECPoint ecpoint = new FixedPointCombMultiplier().multiply(GMNamedCurves.getByName(CURVE_NAME).getG(), d);
+        ECPoint ecpoint = new FixedPointCombMultiplier().multiply(GMNamedCurves.getByName(Const.CURVE_NAME).getG(), d);
         ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(ecpoint, PARAMETER_SPEC);
         return new BCECPublicKey(privateKey.getAlgorithm(), pubKeySpec,
                 BouncyCastleProvider.CONFIGURATION);
