@@ -23,6 +23,7 @@ import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import twgc.gm.Const;
 
 /**
  * @author liqs
@@ -38,7 +39,6 @@ public class SM2X509CertMaker {
         EndEntity
     } // class CertLevel
 
-    private static final String SIGN_ALGO_SM3WITHSM2 = "SM3WITHSM2";
     private long certExpire;
     private X500Name issuerDN;
     private CertSNAllocator snAllocator;
@@ -160,7 +160,7 @@ public class SM2X509CertMaker {
 
     private JcaContentSignerBuilder makeContentSignerBuilder(PublicKey issPub) throws Exception {
         if (issPub.getAlgorithm().equals("EC")) {
-            JcaContentSignerBuilder contentSignerBuilder = new JcaContentSignerBuilder(SIGN_ALGO_SM3WITHSM2);
+            JcaContentSignerBuilder contentSignerBuilder = new JcaContentSignerBuilder(Const.SM3SM2_VALUE);
             contentSignerBuilder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
             return contentSignerBuilder;
         }
