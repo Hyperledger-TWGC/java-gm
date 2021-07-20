@@ -17,9 +17,9 @@ variables:
   - group: TWGC
 
 jobs:
-  - job: gradleWithoutWrapper
-    steps:
-      - script: gradle build
+  #- job: gradleWithoutWrapper
+  #  steps:
+  #    - script: gradle build
   - job: ut
     steps:
       - script: gradle wrapper
@@ -34,9 +34,12 @@ jobs:
           publishJUnitResults: true
           testResultsFiles: '**/TEST-*.xml'
           tasks: 'build'
-          codeCoverageToolOption: 'jaCoCo'
-          codeCoverageClassFilesDirectories: 'build/classes/java/main'
+          #codeCoverageToolOption: 'jaCoCo'
+          #codeCoverageClassFilesDirectories: 'build/classes/java/main'
           checkStyleRunAnalysis: true
+          #- task: PublishCodeCoverageResults@1
+          #  inputs:
+          #    summaryFileLocation: '**/build/jacocoHtml'
   - job: releaseJar
     dependsOn:
       - ut
