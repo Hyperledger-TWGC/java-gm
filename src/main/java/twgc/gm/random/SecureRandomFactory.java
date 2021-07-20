@@ -1,4 +1,4 @@
-package twgc.gm.sm2;
+package twgc.gm.random;
 
 import java.security.SecureRandom;
 

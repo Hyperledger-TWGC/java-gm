@@ -1,4 +1,4 @@
-package twgc.gm.cert;
+package twgc.gm.random;
 
 import java.math.BigInteger;
 
