@@ -1,8 +1,9 @@
-package twgc.gm.sm4.pool;
+package twgc.gm.pool;
 
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
+import twgc.gm.sm4.SM4Cipher;
 
 /**
  * @author Sean

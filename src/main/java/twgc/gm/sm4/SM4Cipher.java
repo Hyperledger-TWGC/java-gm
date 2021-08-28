@@ -1,4 +1,4 @@
-package twgc.gm.sm4.pool;
+package twgc.gm.sm4;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -8,7 +8,7 @@ import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import twgc.gm.sm4.SM4ModeAndPaddingEnum;
+import twgc.gm.consts.SM4ModeAndPaddingEnum;
 
 
 /**

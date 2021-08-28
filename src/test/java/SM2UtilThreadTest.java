@@ -13,8 +13,8 @@ import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import twgc.gm.pool.SM2EnginePool;
 import twgc.gm.sm2.SM2Util;
-import twgc.gm.sm2.pool.SM2EnginePool;
 
 
 /**
@@ -28,7 +28,7 @@ public class SM2UtilThreadTest {
     static String exceptionHappened = "Exception happened";
     static int randomData = 128;
     static byte[] message = RandomStringUtils.random(randomData).getBytes();
-    static SM2EnginePool sm2EnginePool = new SM2EnginePool(8, SM2Engine.Mode.C1C3C2);
+    static SM2EnginePool sm2EnginePool = new SM2EnginePool(SM2Engine.Mode.C1C3C2);
     PublicKey pubKey;
     PrivateKey privKey;
     KeyPair keyPair;
