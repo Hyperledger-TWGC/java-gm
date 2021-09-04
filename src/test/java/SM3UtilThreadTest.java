@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -19,7 +20,16 @@ public class SM3UtilThreadTest {
     static int randomData = 128;
     static byte[] message = RandomStringUtils.random(randomData).getBytes();
 
-    static SM3DigestPool sm3DigestPool = new SM3DigestPool();
+    static SM3DigestPool sm3DigestPool;
+
+    static {
+        try {
+            sm3DigestPool = new SM3DigestPool();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     static String exceptionHappened = "Exception happened";
 
     @Test

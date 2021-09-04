@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -34,7 +35,14 @@ public class SM4UtilTest {
     static int randomData = 128;
     static String message = RandomStringUtils.random(randomData);
     static String exceptionHappened = "Exception happened";
-    SM4CipherPool sm4CipherPool = new SM4CipherPool(10);
+    SM4CipherPool sm4CipherPool;
+    {
+        try {
+            sm4CipherPool = new SM4CipherPool();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     @SuppressWarnings("rawtypes")
     @Parameters(name = "{index}: sm4({1})")

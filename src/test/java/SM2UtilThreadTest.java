@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -28,7 +29,16 @@ public class SM2UtilThreadTest {
     static String exceptionHappened = "Exception happened";
     static int randomData = 128;
     static byte[] message = RandomStringUtils.random(randomData).getBytes();
-    static SM2EnginePool sm2EnginePool = new SM2EnginePool(SM2Engine.Mode.C1C3C2);
+    static SM2EnginePool sm2EnginePool;
+
+    static {
+        try {
+            sm2EnginePool = new SM2EnginePool(SM2Engine.Mode.C1C3C2);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     PublicKey pubKey;
     PrivateKey privKey;
     KeyPair keyPair;

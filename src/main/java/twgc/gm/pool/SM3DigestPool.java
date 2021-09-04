@@ -1,9 +1,10 @@
 package twgc.gm.pool;
 
+import java.io.IOException;
+
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.bouncycastle.crypto.digests.SM3Digest;
 import twgc.gm.consts.Const;
-
 /**
  * @author Sean
  * @Description: SM3Digest对象池
@@ -27,7 +28,7 @@ public class SM3DigestPool extends GenericObjectPool<SM3Digest> {
         super(sm3DigestFactory, config);
     }
 
-    public SM3DigestPool() {
+    public SM3DigestPool() throws IOException {
         super(sm3DigestFactory, new SM3PoolConfig(Const.SM3_POOL_CONFIG));
     }
 
