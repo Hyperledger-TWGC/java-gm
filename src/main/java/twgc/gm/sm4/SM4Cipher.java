@@ -1,14 +1,15 @@
-package twgc.gm.sm4.pool;
+package twgc.gm.sm4;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.Security;
 import java.util.EnumMap;
 import java.util.Map;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import twgc.gm.sm4.SM4ModeAndPaddingEnum;
+import twgc.gm.consts.SM4ModeAndPaddingEnum;
 
 
 /**
@@ -21,6 +22,9 @@ public class SM4Cipher {
     private final Map<SM4ModeAndPaddingEnum, Cipher> cipherMap = new EnumMap<>(SM4ModeAndPaddingEnum.class);
 
     public SM4Cipher() throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
         for (SM4ModeAndPaddingEnum mode : SM4ModeAndPaddingEnum.values()) {
             Cipher cipher = Cipher.getInstance(mode.getName(), BouncyCastleProvider.PROVIDER_NAME);
             cipherMap.put(mode, cipher);

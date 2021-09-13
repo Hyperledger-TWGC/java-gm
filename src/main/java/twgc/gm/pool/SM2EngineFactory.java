@@ -1,4 +1,4 @@
-package twgc.gm.sm2.pool;
+package twgc.gm.pool;
 
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
@@ -14,7 +14,7 @@ public class SM2EngineFactory extends BasePooledObjectFactory<SM2Engine> {
 
     private SM2Engine.Mode mode;
 
-    protected SM2EngineFactory(SM2Engine.Mode mode) {
+    public SM2EngineFactory(SM2Engine.Mode mode) {
         this.mode = mode;
     }
 

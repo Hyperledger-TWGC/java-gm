@@ -1,8 +1,11 @@
-package twgc.gm.sm4.pool;
+package twgc.gm.pool;
 
+import java.io.IOException;
 import java.security.Security;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import twgc.gm.consts.Const;
+import twgc.gm.sm4.SM4Cipher;
 
 
 /**
@@ -20,10 +23,15 @@ public class SM4CipherPool extends GenericObjectPool<SM4Cipher> {
 
     public SM4CipherPool(int init, int max) {
         super(sm4CipherFactory);
-        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-            Security.addProvider(new BouncyCastleProvider());
-        }
         setMaxTotal(max);
         setMinIdle(init);
+    }
+
+    public SM4CipherPool(SM4PoolConfig config) {
+        super(sm4CipherFactory, config);
+    }
+
+    public SM4CipherPool() throws IOException {
+        super(sm4CipherFactory, new SM4PoolConfig(Const.SM4_POOL_CONFIG));
     }
 }

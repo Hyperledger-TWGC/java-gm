@@ -1,4 +1,4 @@
-package twgc.gm.sm4;
+package twgc.gm.consts;
 
 /**
  * @author Sean

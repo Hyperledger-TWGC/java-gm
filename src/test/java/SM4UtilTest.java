@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -14,10 +15,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import twgc.gm.sm4.SM4ModeAndPaddingEnum;
+import twgc.gm.consts.SM4ModeAndPaddingEnum;
+import twgc.gm.pool.SM4CipherPool;
+import twgc.gm.sm4.SM4Cipher;
 import twgc.gm.sm4.SM4Util;
-import twgc.gm.sm4.pool.SM4Cipher;
-import twgc.gm.sm4.pool.SM4CipherPool;
 
 /**
  * @author Sean
@@ -34,7 +35,14 @@ public class SM4UtilTest {
     static int randomData = 128;
     static String message = RandomStringUtils.random(randomData);
     static String exceptionHappened = "Exception happened";
-    SM4CipherPool sm4CipherPool = new SM4CipherPool(10);
+    SM4CipherPool sm4CipherPool;
+    {
+        try {
+            sm4CipherPool = new SM4CipherPool();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     @SuppressWarnings("rawtypes")
     @Parameters(name = "{index}: sm4({1})")
