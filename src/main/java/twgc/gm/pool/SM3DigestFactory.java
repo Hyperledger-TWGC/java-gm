@@ -1,4 +1,4 @@
-package twgc.gm.sm3.pool;
+package twgc.gm.pool;
 
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;

@@ -2,8 +2,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.bouncycastle.crypto.digests.SM3Digest;
 import org.junit.Assert;
 import org.junit.Test;
+import twgc.gm.pool.SM3DigestPool;
 import twgc.gm.sm3.SM3Util;
-import twgc.gm.sm3.pool.SM3DigestPool;
 
 /**
  * @author Sean

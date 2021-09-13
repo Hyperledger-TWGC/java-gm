@@ -1,7 +1,10 @@
-package twgc.gm.sm2.pool;
+package twgc.gm.pool;
+
+import java.io.IOException;
 
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.bouncycastle.crypto.engines.SM2Engine;
+import twgc.gm.consts.Const;
 
 /**
  * @author Sean
@@ -18,6 +21,14 @@ public class SM2EnginePool extends GenericObjectPool<SM2Engine> {
         super(new SM2EngineFactory(mode));
         setMaxTotal(max);
         setMinIdle(init);
+    }
+
+    public SM2EnginePool(SM2Engine.Mode mode, SM2PoolConfig config) {
+        super(new SM2EngineFactory(mode), config);
+    }
+
+    public SM2EnginePool(SM2Engine.Mode mode) throws IOException {
+        super(new SM2EngineFactory(mode), new SM2PoolConfig(Const.SM2_POOL_CONFIG));
     }
 
 }

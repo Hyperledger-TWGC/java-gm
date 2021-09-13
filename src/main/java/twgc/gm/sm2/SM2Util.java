@@ -47,7 +47,7 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.bouncycastle.util.io.pem.PemWriter;
-import twgc.gm.Const;
+import twgc.gm.consts.Const;
 import twgc.gm.random.SecureRandomFactory;
 
 /**

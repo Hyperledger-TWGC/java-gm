@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -5,8 +6,8 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.bouncycastle.crypto.digests.SM3Digest;
 import org.junit.Assert;
 import org.junit.Test;
+import twgc.gm.pool.SM3DigestPool;
 import twgc.gm.sm3.SM3Util;
-import twgc.gm.sm3.pool.SM3DigestPool;
 
 
 /**
@@ -19,7 +20,16 @@ public class SM3UtilThreadTest {
     static int randomData = 128;
     static byte[] message = RandomStringUtils.random(randomData).getBytes();
 
-    static SM3DigestPool sm3DigestPool = new SM3DigestPool(10);
+    static SM3DigestPool sm3DigestPool;
+
+    static {
+        try {
+            sm3DigestPool = new SM3DigestPool();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     static String exceptionHappened = "Exception happened";
 
     @Test
