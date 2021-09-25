@@ -39,6 +39,7 @@ public class SM4UtilTest {
     {
         try {
             sm4CipherPool = new SM4CipherPool();
+            System.out.println("maxTotal=" + sm4CipherPool.getMaxTotal() + ", maxIdle=" + sm4CipherPool.getMaxIdle() + ", minIdle=" + sm4CipherPool.getMinIdle());
         } catch (IOException e) {
             e.printStackTrace();
         }

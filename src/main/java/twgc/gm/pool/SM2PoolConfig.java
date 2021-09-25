@@ -12,10 +12,10 @@ public class SM2PoolConfig extends GenericObjectPoolConfig {
     }
 
     public SM2PoolConfig(String file) throws IOException {
-        new SM2PoolConfig(Const.loadConfig(this.getClass().getResourceAsStream(file)));
+        this.setProperties(Const.loadConfig(this.getClass().getResourceAsStream(file)));
     }
 
-    public SM2PoolConfig(Properties properties) {
+    private void setProperties(Properties properties) {
         this.setMaxTotal(Integer.valueOf(properties.getProperty("maxTotal")).intValue());
         this.setMaxIdle(Integer.valueOf(properties.getProperty("maxIdle")).intValue());
         this.setMinIdle(Integer.valueOf(properties.getProperty("minIdle")).intValue());

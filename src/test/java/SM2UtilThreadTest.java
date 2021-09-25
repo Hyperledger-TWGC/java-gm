@@ -34,6 +34,7 @@ public class SM2UtilThreadTest {
     static {
         try {
             sm2EnginePool = new SM2EnginePool(SM2Engine.Mode.C1C3C2);
+            System.out.println("maxTotal=" + sm2EnginePool.getMaxTotal() + ", maxIdle=" + sm2EnginePool.getMaxIdle() + ", minIdle=" + sm2EnginePool.getMinIdle());
         } catch (IOException e) {
             e.printStackTrace();
         }

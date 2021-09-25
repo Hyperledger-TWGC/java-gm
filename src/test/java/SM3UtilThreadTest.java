@@ -25,6 +25,7 @@ public class SM3UtilThreadTest {
     static {
         try {
             sm3DigestPool = new SM3DigestPool();
+            System.out.println("maxTotal=" + sm3DigestPool.getMaxTotal() + ", maxIdle=" + sm3DigestPool.getMaxIdle() + ", minIdle=" + sm3DigestPool.getMinIdle());
         } catch (IOException e) {
             e.printStackTrace();
         }
