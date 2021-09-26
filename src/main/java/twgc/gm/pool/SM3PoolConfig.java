@@ -2,6 +2,7 @@ package twgc.gm.pool;
 
 import java.io.IOException;
 import java.util.Properties;
+
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import twgc.gm.consts.Const;
 
