@@ -28,7 +28,7 @@ public class SM2EnginePool extends GenericObjectPool<SM2Engine> {
     }
 
     public SM2EnginePool(SM2Engine.Mode mode) throws IOException {
-        super(new SM2EngineFactory(mode), new SM2PoolConfig(Const.SM2_POOL_CONFIG));
+        super(new SM2EngineFactory(mode), new SM2PoolConfig(Const.POOL_CONFIG));
     }
 
 }

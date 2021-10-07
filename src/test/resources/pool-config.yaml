@@ -1,0 +1,17 @@
+default: &default
+  maxTotal: 10
+  maxIdle: 8
+  minIdle: 2
+  maxWaitMillis: 1000
+
+sm2:
+  <<: *default
+  maxTotal: 12
+
+sm3:
+  <<: *default
+  maxIdle: 10
+
+sm4:
+  <<: *default
+  minIdle: 4
