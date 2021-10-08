@@ -29,7 +29,7 @@ public class SM3DigestPool extends GenericObjectPool<SM3Digest> {
     }
 
     public SM3DigestPool() throws IOException {
-        super(sm3DigestFactory, new SM3PoolConfig(Const.SM3_POOL_CONFIG));
+        super(sm3DigestFactory, new SM3PoolConfig(Const.POOL_CONFIG));
     }
 
     @Override
