@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'checkstyle'
     id 'maven-publish'
+    id 'jacoco'
 }
 
 group 'twgc'
@@ -35,6 +36,41 @@ checkstyle {
 
 check.dependsOn 'checkstyle'
 
+jacoco {
+    toolVersion = "0.8.5"
+    reportsDir = file("$buildDir/customJacocoReportDir")
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled false
+        csv.enabled false
+        html.destination file("${buildDir}/jacocoHtml")
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.85
+            }
+        }
+
+        rule {
+            enabled = false
+            element = 'CLASS'
+            includes = ['twgc.gm.*']
+
+            limit {
+                counter = 'LINE'
+                value = 'TOTALCOUNT'
+                maximum = 0.90
+            }
+        }
+    }
+}
+
 task checkstyle(type: Checkstyle) {
     //configFile file("${project.projectDir}/config/checkstyle/checkstyle.xml")
     // Where my checkstyle config is...
@@ -44,6 +80,9 @@ task checkstyle(type: Checkstyle) {
     exclude "**/test/**"
     classpath = files()
 }
+
+jacocoTestCoverageVerification.dependsOn 'jacocoTestReport'
+build.dependsOn 'jacocoTestCoverageVerification'
 
 publishing {
     repositories {

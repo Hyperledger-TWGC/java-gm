@@ -37,8 +37,8 @@ public class SM2X509CertFactory {
 
     private enum CertLevel {
         RootCA,
-        SubCA,
-        EndEntity
+        SubCA
+        //EndEntity
     } // class CertLevel
 
     private X500Name issuerDN;
@@ -72,13 +72,17 @@ public class SM2X509CertFactory {
                                       Date notAfter) throws OperatorCreationException, InvalidKeyException, NoSuchAlgorithmException, IOException, SignatureException, NoSuchProviderException, CertificateException {
         KeyUsage usage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
         PKCS10CertificationRequest request = new PKCS10CertificationRequest(csr);
+        X500Name subject = request.getSubject();
+        if (!issuerDN.equals(subject)) {
+            throw new IllegalArgumentException("subject != issuer for certLevel " + CertLevel.RootCA);
+        }
         X509v3CertificateBuilder v3CertGen = genX509v3CertificateBuilder(CertLevel.RootCA, request, mail, serial, notBefore, notAfter);
         if (!selfSignedEECert) {
             v3CertGen.addExtension(Extension.authorityKeyIdentifier, false,
                     extUtils.createAuthorityKeyIdentifier(SubjectPublicKeyInfo.getInstance(issuerKeyPair.getPublic().getEncoded())));
         }
         BasicConstraints basicConstraints = new BasicConstraints(true);
-        return certificate(CertLevel.RootCA, usage, null, basicConstraints, request, v3CertGen);
+        return certificate(CertLevel.RootCA, usage, basicConstraints, request, v3CertGen);
     }
 
     /**
@@ -95,27 +99,34 @@ public class SM2X509CertFactory {
         KeyUsage usage = new KeyUsage(KeyUsage.keyCertSign | KeyUsage.cRLSign);
         BasicConstraints basicConstraints = new BasicConstraints(0);
         PKCS10CertificationRequest request = new PKCS10CertificationRequest(csr);
+        X500Name subject = request.getSubject();
+        if (issuerDN.equals(subject)) {
+            throw new IllegalArgumentException(
+                    "subject MUST not equals issuer for certLevel " + CertLevel.SubCA);
+        }
         X509v3CertificateBuilder v3CertGen = genX509v3CertificateBuilder(CertLevel.SubCA, request, mail, serial, notBefore, notAfter);
-        return certificate(CertLevel.SubCA, usage, null, basicConstraints, request, v3CertGen);
+        return certificate(CertLevel.SubCA, usage, basicConstraints, request, v3CertGen);
     }
 
     private X509Certificate certificate(CertLevel certLevel,
-                                        KeyUsage keyUsage, KeyPurposeId[] extendedKeyUsages,
+                                        KeyUsage keyUsage, //KeyPurposeId[] extendedKeyUsages
                                         BasicConstraints basicConstraints,
                                         PKCS10CertificationRequest request,
                                         X509v3CertificateBuilder v3CertGen) throws IOException, OperatorCreationException, CertificateException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        if (certLevel == CertLevel.EndEntity) {
+        /*if (certLevel == CertLevel.EndEntity) {
             if (keyUsage.hasUsages(KeyUsage.keyCertSign)) {
                 throw new IllegalArgumentException("key usage keyCertSign is not allowed in EndEntity Certificate");
             }
-        }
-
+        }*/
+        X509Certificate cert = null;
         SubjectPublicKeyInfo subPub = request.getSubjectPublicKeyInfo();
         v3CertGen.addExtension(Extension.subjectKeyIdentifier, false, extUtils.createSubjectKeyIdentifier(subPub));
         v3CertGen.addExtension(Extension.basicConstraints, true, basicConstraints);
         v3CertGen.addExtension(Extension.keyUsage, true, keyUsage);
 
-        if (extendedKeyUsages != null) {
+       /*
+       comments so far as no invoked and used code branch
+       if (extendedKeyUsages != null) {
             ExtendedKeyUsage xku = new ExtendedKeyUsage(extendedKeyUsages);
             v3CertGen.addExtension(Extension.extendedKeyUsage, false, xku);
             boolean forSSLServer = false;
@@ -132,7 +143,7 @@ public class SM2X509CertFactory {
                 GeneralName name = new GeneralName(GeneralName.dNSName, new DERIA5String(commonName, true));
                 subjectAltNames.add(name);
             }
-        }
+        } */
 
         if (!subjectAltNames.isEmpty()) {
             v3CertGen.addExtension(Extension.subjectAlternativeName, false,
@@ -141,21 +152,20 @@ public class SM2X509CertFactory {
 
         JcaContentSignerBuilder contentSignerBuilder = makeContentSignerBuilder(issuerKeyPair.getPublic());
         if (contentSignerBuilder != null) {
-            X509Certificate cert = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME)
+            cert = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME)
                     .getCertificate(v3CertGen.build(contentSignerBuilder.build(issuerKeyPair.getPrivate())));
             cert.verify(issuerKeyPair.getPublic());
-            return cert;
         }
-        return null;
+        return cert;
     }
 
     private JcaContentSignerBuilder makeContentSignerBuilder(PublicKey issPub) {
+        JcaContentSignerBuilder contentSignerBuilder = null;
         if (issPub.getAlgorithm().equals(Const.EC_VALUE)) {
-            JcaContentSignerBuilder contentSignerBuilder = new JcaContentSignerBuilder(Const.SM3SM2_VALUE);
+            contentSignerBuilder = new JcaContentSignerBuilder(Const.SM3SM2_VALUE);
             contentSignerBuilder.setProvider(BouncyCastleProvider.PROVIDER_NAME);
-            return contentSignerBuilder;
         }
-        return null;
+        return contentSignerBuilder;
     }
 
     private X509v3CertificateBuilder genX509v3CertificateBuilder(CertLevel certLevel,
@@ -200,25 +210,8 @@ public class SM2X509CertFactory {
                             new DERIA5String(email, true)));
         }
 
-        switch (certLevel) {
-            case RootCA:
-                if (issuerDN.equals(subject)) {
-                    subject = issuerDN;
-                } else {
-                    throw new IllegalArgumentException("subject != issuer for certLevel " + CertLevel.RootCA);
-                }
-                break;
-            case SubCA:
-                if (issuerDN.equals(subject)) {
-                    throw new IllegalArgumentException(
-                            "subject MUST not equals issuer for certLevel " + certLevel);
-                }
-                break;
-            default:
-                if (issuerDN.equals(subject)) {
-                    selfSignedEECert = true;
-                    subject = issuerDN;
-                }
+        if (issuerDN.equals(subject)) {
+            selfSignedEECert = true;
         }
         return new X509v3CertificateBuilder(
                 issuerDN, serial,

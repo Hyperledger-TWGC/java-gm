@@ -194,6 +194,7 @@ public class SM2Util {
         FileReader fr = new FileReader(filename);
         PEMParser pemReader = new PEMParser(fr);
         Object obj = pemReader.readObject();
+        PrivateKey priv = null;
         fr.close();
         pemReader.close();
         if (password != null && password.length() > 0) {
@@ -203,12 +204,12 @@ public class SM2Util {
                         .setProvider(BouncyCastleProvider.PROVIDER_NAME)
                         .build(password.toCharArray());
                 PrivateKeyInfo pkInfo = epkInfo.decryptPrivateKeyInfo(decryptor);
-                return CONVERTER.getPrivateKey(pkInfo);
+                priv = CONVERTER.getPrivateKey(pkInfo);
             }
         } else {
-            return CONVERTER.getPrivateKey((PrivateKeyInfo) obj);
+            priv = CONVERTER.getPrivateKey((PrivateKeyInfo) obj);
         }
-        return null;
+        return priv;
     }
 
 
