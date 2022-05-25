@@ -1,0 +1,14 @@
+name: basicCI
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: '0 0 * * 2' # https://crontab.guru/#0_0_*_*_2
+jobs:
+  java_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: gradle build;
+
