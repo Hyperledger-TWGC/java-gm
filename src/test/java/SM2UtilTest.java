@@ -1,4 +1,6 @@
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -90,6 +92,9 @@ public class SM2UtilTest {
         File privFile = new File(privFileName);
         File reqFile = new File(reqFileName);
         File certFile = new File(certFileName);
+        FileInputStream in = null;
+        FileReader fr = null;
+        FileReader fr1 = null;
         try {
             if (!pubFile.exists()) {
                 SM2Util instance = new SM2Util();
@@ -107,17 +112,23 @@ public class SM2UtilTest {
             } else {
                 System.out.println("Skip file generation deal to interact testing.");
             }
-            this.pubKey = SM2Util.loadPublicFromFile(pubFileName);
+            fr = new FileReader(pubFileName);
+            this.pubKey = SM2Util.loadPublicFromFile(fr);
+            fr.close();
             Assert.assertNotNull(this.pubKey);
-            this.privKey = SM2Util.loadPrivFromFile(privFileName, "");
+            fr1 = new FileReader(privFileName);
+            this.privKey = SM2Util.loadPrivFromFile(fr1, "");
+            fr1.close();
             Assert.assertNotNull(this.privKey);
-            this.x509Certificate = SM2Util.loadX509CertificateFromFile(certFileName);
+            in = new FileInputStream(certFileName);
+            this.x509Certificate = SM2Util.loadX509CertificateFromFile(in);
             Assert.assertNotNull(this.x509Certificate);
             Assert.assertEquals("SM3WITHSM2", this.x509Certificate.getSigAlgName());
             if (!pubFile.exists()) {
                 Assert.assertEquals(keyEqualHint, this.keyPair.getPublic(), this.pubKey);
                 Assert.assertEquals(keyEqualHint, this.keyPair.getPrivate(), this.privKey);
             }
+            in.close();
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail(exceptionHappened);
@@ -224,14 +235,17 @@ public class SM2UtilTest {
     //key with password
     @Test
     public void keyPairWithPasswd() {
+        FileReader fr = null;
         try {
             SM2Util instance = new SM2Util();
             KeyPair keyPair = instance.generatekeyPair();
             String privateKeyPem = SM2Util.pemFrom(keyPair.getPrivate(), passwd);
             Files.write(Paths.get(encryptedprivFileName), privateKeyPem.getBytes());
-            PrivateKey key = SM2Util.loadPrivFromFile(encryptedprivFileName, passwd);
+            fr = new FileReader(encryptedprivFileName);
+            PrivateKey key = SM2Util.loadPrivFromFile(fr, passwd);
             Assert.assertNotNull(key);
             Assert.assertEquals(keyEqualHint, keyPair.getPrivate(), key);
+            fr.close();
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail(exceptionHappened);

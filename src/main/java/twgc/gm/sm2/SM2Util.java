@@ -190,12 +190,10 @@ public class SM2Util {
         return str.toString();
     }
 
-    public static PrivateKey loadPrivFromFile(String filename, String password) throws IOException, OperatorCreationException, PKCSException {
-        FileReader fr = new FileReader(filename);
+    public static PrivateKey loadPrivFromFile(FileReader fr, String password) throws IOException, OperatorCreationException, PKCSException {
         PEMParser pemReader = new PEMParser(fr);
         Object obj = pemReader.readObject();
         PrivateKey priv = null;
-        fr.close();
         pemReader.close();
         if (password != null && password.length() > 0) {
             if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
@@ -213,18 +211,13 @@ public class SM2Util {
     }
 
 
-    public static PublicKey loadPublicFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        FileReader fr = new FileReader(filename);
+    public static PublicKey loadPublicFromFile(FileReader fr) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
         PemObject spki = new PemReader(fr).readPemObject();
-        fr.close();
-        Provider p = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
         return KeyFactory.getInstance(Const.EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
     }
 
-    public static X509Certificate loadX509CertificateFromFile(String filename) throws IOException, CertificateException,
+    public static X509Certificate loadX509CertificateFromFile(FileInputStream in) throws IOException, CertificateException,
             NoSuchProviderException {
-            FileInputStream in = null;
-            in = new FileInputStream(filename);
             CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
             return (X509Certificate) cf.generateCertificate(in);
     }
