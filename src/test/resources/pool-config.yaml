@@ -6,11 +6,11 @@ default: &default
 
 sm2:
   <<: *default
-  maxTotal: 12
+  maxTotal: 30
 
 sm3:
   <<: *default
-  maxIdle: 10
+  maxTotal: 30
 
 sm4:
   <<: *default
