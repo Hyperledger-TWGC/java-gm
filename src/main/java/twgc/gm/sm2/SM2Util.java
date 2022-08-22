@@ -137,32 +137,30 @@ public class SM2Util {
     }
 
     public static String pemFrom(PrivateKey privateKey, String password) throws OperatorCreationException, IOException {
-        OutputEncryptor encryptor = null;
-        if (password != null && password.length() > 0) {
-            encryptor = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC)
-                    .setProvider(BouncyCastleProvider.PROVIDER_NAME)
-                    .setRandom(SecureRandomFactory.getSecureRandom())
-                    .setPasssword(password.toCharArray())
-                    .build();
+        StringWriter sw = new StringWriter();
+        try (JcaPEMWriter pemWriter = new JcaPEMWriter(sw)) {
+            OutputEncryptor encryptor = null;
+            if (password != null && password.length() > 0) {
+                encryptor = new JceOpenSSLPKCS8EncryptorBuilder(PKCS8Generator.AES_256_CBC)
+                        .setProvider(BouncyCastleProvider.PROVIDER_NAME)
+                        .setRandom(SecureRandomFactory.getSecureRandom())
+                        .setPasssword(password.toCharArray())
+                        .build();
+            }
+            PKCS8Generator generator = new JcaPKCS8Generator(privateKey, encryptor);
+            pemWriter.writeObject(generator);
         }
-        PKCS8Generator generator = new JcaPKCS8Generator(privateKey, encryptor);
-        StringWriter stringWriter = new StringWriter();
-        JcaPEMWriter pemWriter = new JcaPEMWriter(stringWriter);
-        pemWriter.writeObject(generator);
-        pemWriter.close();
-        stringWriter.close();
-        return stringWriter.toString();
+        return sw.toString();
     }
 
 
     public static String pemFrom(PublicKey publicKey) throws IOException {
-        PemObject pem = new PemObject("PUBLIC KEY", publicKey.getEncoded());
-        StringWriter str = new StringWriter();
-        PemWriter pemWriter = new PemWriter(str);
-        pemWriter.writeObject(pem);
-        pemWriter.close();
-        str.close();
-        return str.toString();
+        StringWriter sw = new StringWriter();
+        try (PemWriter pemWriter = new PemWriter(sw)) {
+            PemObject pem = new PemObject("PUBLIC KEY", publicKey.getEncoded());
+            pemWriter.writeObject(pem);
+        }
+        return sw.toString();
     }
 
     /**
@@ -171,23 +169,21 @@ public class SM2Util {
      * @param csr 证书请求对象
      */
     public static String pemFrom(PKCS10CertificationRequest csr) throws IOException {
-        PemObject pem = new PemObject("CERTIFICATE REQUEST", csr.getEncoded());
-        StringWriter str = new StringWriter();
-        PemWriter pemWriter = new PemWriter(str);
-        pemWriter.writeObject(pem);
-        pemWriter.close();
-        str.close();
-        return str.toString();
+        StringWriter sw = new StringWriter();
+        try (PemWriter pemWriter = new PemWriter(sw)) {
+            PemObject pem = new PemObject("CERTIFICATE REQUEST", csr.getEncoded());
+            pemWriter.writeObject(pem);
+        }
+        return sw.toString();
     }
 
     public static String pemFrom(X509Certificate x509Certificate) throws IOException, CertificateEncodingException {
-        PemObject pem = new PemObject("CERTIFICATE", x509Certificate.getEncoded());
-        StringWriter str = new StringWriter();
-        PemWriter pemWriter = new PemWriter(str);
-        pemWriter.writeObject(pem);
-        pemWriter.close();
-        str.close();
-        return str.toString();
+        StringWriter sw = new StringWriter();
+        try (PemWriter pemWriter = new PemWriter(sw)) {
+            PemObject pem = new PemObject("CERTIFICATE", x509Certificate.getEncoded());
+            pemWriter.writeObject(pem);
+        }
+        return sw.toString();
     }
 
     public static PrivateKey loadPrivFromFile(String filename, String password) throws IOException, OperatorCreationException, PKCSException {
