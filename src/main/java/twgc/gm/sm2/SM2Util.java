@@ -94,7 +94,6 @@ public class SM2Util {
      * 生成 PKCS#10 证书请求
      *
      * @return RSA P10 证书请求 Base64 字符串
-     * @throws InvalidAlgorithmParameterException 当采用的 ECC 算法不适用于该密钥对生成器时
      */
     public KeyPair generatekeyPair() {
         return generator.generateKeyPair();
@@ -153,7 +152,6 @@ public class SM2Util {
         return sw.toString();
     }
 
-
     public static String pemFrom(PublicKey publicKey) throws IOException {
         StringWriter sw = new StringWriter();
         try (PemWriter pemWriter = new PemWriter(sw)) {
@@ -187,42 +185,39 @@ public class SM2Util {
     }
 
     public static PrivateKey loadPrivFromFile(String filename, String password) throws IOException, OperatorCreationException, PKCSException {
-        FileReader fr = new FileReader(filename);
-        PEMParser pemReader = new PEMParser(fr);
-        Object obj = pemReader.readObject();
         PrivateKey priv = null;
-        fr.close();
-        pemReader.close();
-        if (password != null && password.length() > 0) {
-            if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
-                PKCS8EncryptedPrivateKeyInfo epkInfo = (PKCS8EncryptedPrivateKeyInfo) obj;
-                InputDecryptorProvider decryptor = new JceOpenSSLPKCS8DecryptorProviderBuilder()
-                        .setProvider(BouncyCastleProvider.PROVIDER_NAME)
-                        .build(password.toCharArray());
-                PrivateKeyInfo pkInfo = epkInfo.decryptPrivateKeyInfo(decryptor);
-                priv = CONVERTER.getPrivateKey(pkInfo);
+        try (PEMParser pemParser = new PEMParser(new FileReader(filename))) {
+            Object obj = pemParser.readObject();
+            if (password != null && password.length() > 0) {
+                if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
+                    PKCS8EncryptedPrivateKeyInfo epkInfo = (PKCS8EncryptedPrivateKeyInfo) obj;
+                    InputDecryptorProvider decryptor = new JceOpenSSLPKCS8DecryptorProviderBuilder()
+                            .setProvider(BouncyCastleProvider.PROVIDER_NAME)
+                            .build(password.toCharArray());
+                    PrivateKeyInfo pkInfo = epkInfo.decryptPrivateKeyInfo(decryptor);
+                    priv = CONVERTER.getPrivateKey(pkInfo);
+                }
+            } else {
+                priv = CONVERTER.getPrivateKey((PrivateKeyInfo) obj);
             }
-        } else {
-            priv = CONVERTER.getPrivateKey((PrivateKeyInfo) obj);
         }
         return priv;
     }
 
-
     public static PublicKey loadPublicFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        FileReader fr = new FileReader(filename);
-        PemObject spki = new PemReader(fr).readPemObject();
-        fr.close();
-        Provider p = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
-        return KeyFactory.getInstance(Const.EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
+        try (PemReader pemReader = new PemReader(new FileReader(filename))) {
+            PemObject spki = pemReader.readPemObject();
+            Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
+            return KeyFactory.getInstance(Const.EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
+        }
     }
 
     public static X509Certificate loadX509CertificateFromFile(String filename) throws IOException, CertificateException,
             NoSuchProviderException {
-            FileInputStream in = null;
-            in = new FileInputStream(filename);
+        try (FileInputStream in = new FileInputStream(filename)) {
             CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
             return (X509Certificate) cf.generateCertificate(in);
+        }
     }
 
     public static PublicKey derivePublicFromPrivate(PrivateKey privateKey) {
