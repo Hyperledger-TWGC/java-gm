@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import twgc.gm.consts.Const;
 import twgc.gm.utils.ConfigLoader;
+import twgc.gm.utils.Const;
 
 public class SM2PoolConfig extends GenericObjectPoolConfig {
 

@@ -9,7 +9,6 @@ import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import twgc.gm.consts.SM4ModeAndPaddingEnum;
 
 
 /**

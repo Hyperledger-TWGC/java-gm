@@ -4,9 +4,9 @@ import java.security.*;
 
 import org.bouncycastle.crypto.digests.SM3Digest;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import twgc.gm.consts.Const;
 import twgc.gm.random.SecureRandomFactory;
 import twgc.gm.sm3.SM3Util;
+import twgc.gm.utils.Const;
 
 public class SM2SM3Util {
     private Signature signature;

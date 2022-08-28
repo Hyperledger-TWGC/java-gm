@@ -45,7 +45,7 @@
     sm2EnginePool.returnObject(sm2Engine);
 ```
 具体对象池的配置参考如下文件：
-`SM2Pool.properties`, `SM3Pool.properties`, `SM4Pool.properties`
+`pool-config.yaml`,
 我们目前尚未使用统一的对象池，而是根据不同密码学算法使用不同的对象池。
 这里是考虑到不同算法的执行效率并不相同，因此例如sm2+sm3的操作：
 我们可以考虑用一个数量更小的sm3对象池，来对接一个sm2对象池，来实现摘要（SM3）签名（SM2）这一密码学实现。

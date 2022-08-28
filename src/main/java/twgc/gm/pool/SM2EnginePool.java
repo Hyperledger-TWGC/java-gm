@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.bouncycastle.crypto.engines.SM2Engine;
-import twgc.gm.consts.Const;
+import twgc.gm.utils.Const;
 
 /**
  * @author Sean

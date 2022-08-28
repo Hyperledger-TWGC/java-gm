@@ -3,8 +3,8 @@ package twgc.gm.pool;
 import java.io.IOException;
 
 import org.apache.commons.pool2.impl.GenericObjectPool;
-import twgc.gm.consts.Const;
 import twgc.gm.sm4.SM4Cipher;
+import twgc.gm.utils.Const;
 
 
 /**
