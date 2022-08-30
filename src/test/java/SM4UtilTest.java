@@ -15,9 +15,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import twgc.gm.consts.SM4ModeAndPaddingEnum;
 import twgc.gm.pool.SM4CipherPool;
 import twgc.gm.sm4.SM4Cipher;
+import twgc.gm.sm4.SM4ModeAndPaddingEnum;
 import twgc.gm.sm4.SM4Util;
 
 /**

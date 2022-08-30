@@ -1,4 +1,4 @@
-package twgc.gm.consts;
+package twgc.gm.utils;
 
 public class Const {
     private Const() {

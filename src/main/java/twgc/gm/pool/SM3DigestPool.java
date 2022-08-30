@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.bouncycastle.crypto.digests.SM3Digest;
-import twgc.gm.consts.Const;
+import twgc.gm.utils.Const;
 /**
  * @author Sean
  * @Description: SM3Digest对象池
