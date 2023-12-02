@@ -1,0 +1,25 @@
+javagm:
+  testdata:
+    private-key: |
+      -----BEGIN PRIVATE KEY-----
+      MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgc0UCgfELjC0V+xUm
+      ELYFmy0J0cee42ZpKyQ4FRTBlJSgCgYIKoEcz1UBgi2hRANCAATJbIFbxcAaDxMk
+      7XExTRU/bBnGEu6YfaleJxnLZS40NDNjZV+ztveWfLZk2+oWieykM3/yZ/6IieJk
+      5uuohUjD
+      -----END PRIVATE KEY-----
+    public-key: |
+      -----BEGIN PUBLIC KEY-----
+      MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEyWyBW8XAGg8TJO1xMU0VP2wZxhLu
+      mH2pXicZy2UuNDQzY2Vfs7b3lny2ZNvqFonspDN/8mf+iIniZObrqIVIww==
+      -----END PUBLIC KEY-----
+    cert: |
+      -----BEGIN CERTIFICATE-----
+      MIIBdzCCAR2gAwIBAgIJAfA3Qnph7CieMAoGCCqBHM9VAYN1MBIxEDAOBgNVBAMM
+      B1Jvb3QgQ0EwHhcNMjMxMjAyMTQzMjMxWhcNODkxMjI3MDAwMDAwWjASMRAwDgYD
+      VQQDEwdSb290IENBMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEyWyBW8XAGg8T
+      JO1xMU0VP2wZxhLumH2pXicZy2UuNDQzY2Vfs7b3lny2ZNvqFonspDN/8mf+iIni
+      ZObrqIVIw6NcMFowHQYDVR0OBBYEFOMvj2LPGlkOw1M1Pj34klVi8SFgMA8GA1Ud
+      EwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMBgGA1UdEQQRMA+BDXRlc3RAdHdn
+      Yy5jb20wCgYIKoEcz1UBg3UDSAAwRQIgTeoLjt+eP3kwQg17G+l12wj4MQNed1hW
+      aZZkJe43rkICIQCdI3WhnrvzhbEijsTXL1woIwnFgY9MIci7BmKLMpMM6w==
+      -----END CERTIFICATE-----

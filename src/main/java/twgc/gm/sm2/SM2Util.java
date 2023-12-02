@@ -1,20 +1,5 @@
 package twgc.gm.sm2;
 
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.math.BigInteger;
-import java.security.*;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.spec.ECGenParameterSpec;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
-import javax.security.auth.x500.X500Principal;
-
 import org.bouncycastle.asn1.gm.GMNamedCurves;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x9.X9ECParameters;
@@ -49,6 +34,19 @@ import org.bouncycastle.util.io.pem.PemReader;
 import org.bouncycastle.util.io.pem.PemWriter;
 import twgc.gm.random.SecureRandomFactory;
 import twgc.gm.utils.Const;
+
+import javax.security.auth.x500.X500Principal;
+import java.io.*;
+import java.math.BigInteger;
+import java.security.*;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.function.Supplier;
 
 /**
  * @author SamYuan; 吴仙杰
@@ -220,6 +218,50 @@ public class SM2Util {
         }
     }
 
+    /**
+     * 从字符串加载私钥
+     *
+     * @param privateKey 字符串字私钥
+     * @param password   密码
+     * @return {@link PrivateKey} 私钥对象
+     * @throws IOException
+     * @throws OperatorCreationException
+     * @throws PKCSException
+     */
+    public static PrivateKey loadPrivFromString(String privateKey, String password) throws IOException, OperatorCreationException, PKCSException {
+        return loadPriv(password, () -> new StringReader(privateKey));
+    }
+
+    /**
+     * 从字符串加载公钥
+     *
+     * @param publicKey 字符串公钥
+     * @return {@link PublicKey} 公钥对象
+     * @throws IOException
+     * @throws NoSuchProviderException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     */
+    public static PublicKey loadPublicFromString(String publicKey) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
+        return loadPublic(() -> new StringReader(publicKey));
+    }
+
+    /**
+     * 从字符串加载证书
+     *
+     * @param cert 字符串证书
+     * @return {@link X509Certificate} 证书对象
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchProviderException
+     */
+    public static X509Certificate loadX509CertificateFromString(String cert) throws IOException, CertificateException, NoSuchProviderException {
+        try (InputStream in = new ByteArrayInputStream(cert.getBytes())) {
+            CertificateFactory cf = CertificateFactory.getInstance("X.509", BouncyCastleProvider.PROVIDER_NAME);
+            return (X509Certificate) cf.generateCertificate(in);
+        }
+    }
+
     public static PublicKey derivePublicFromPrivate(PrivateKey privateKey) {
         BCECPrivateKey localECPrivateKey = (BCECPrivateKey) privateKey;
         BigInteger d = localECPrivateKey.getD();
@@ -227,5 +269,33 @@ public class SM2Util {
         ECPublicKeySpec pubKeySpec = new ECPublicKeySpec(ecpoint, PARAMETER_SPEC);
         return new BCECPublicKey(privateKey.getAlgorithm(), pubKeySpec,
                 BouncyCastleProvider.CONFIGURATION);
+    }
+
+    public static PrivateKey loadPriv(String password, Supplier<Reader> fx) throws IOException, OperatorCreationException, PKCSException {
+        PrivateKey priv = null;
+        try (PEMParser pemParser = new PEMParser(fx.get())) {
+            Object obj = pemParser.readObject();
+            if (password != null && password.length() > 0) {
+                if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
+                    PKCS8EncryptedPrivateKeyInfo epkInfo = (PKCS8EncryptedPrivateKeyInfo) obj;
+                    InputDecryptorProvider decryptor = new JceOpenSSLPKCS8DecryptorProviderBuilder()
+                            .setProvider(BouncyCastleProvider.PROVIDER_NAME)
+                            .build(password.toCharArray());
+                    PrivateKeyInfo pkInfo = epkInfo.decryptPrivateKeyInfo(decryptor);
+                    priv = CONVERTER.getPrivateKey(pkInfo);
+                }
+            } else {
+                priv = CONVERTER.getPrivateKey((PrivateKeyInfo) obj);
+            }
+        }
+        return priv;
+    }
+
+    public static PublicKey loadPublic(Supplier<Reader> fx) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
+        try (PemReader pemReader = new PemReader(fx.get())) {
+            PemObject spki = pemReader.readPemObject();
+            Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
+            return KeyFactory.getInstance(Const.EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
+        }
     }
 }

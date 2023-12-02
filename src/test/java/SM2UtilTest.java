@@ -1,12 +1,3 @@
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.*;
-import java.security.cert.X509Certificate;
-import java.util.Date;
-import javax.security.auth.x500.X500Principal;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
@@ -25,7 +16,18 @@ import twgc.gm.random.CertSNAllocator;
 import twgc.gm.random.RandomSNAllocator;
 import twgc.gm.sm2.SM2Util;
 import twgc.gm.sm2.SM2X509CertFactory;
+import twgc.gm.utils.ConfigLoader;
 
+import javax.security.auth.x500.X500Principal;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.*;
+import java.security.cert.X509Certificate;
+import java.util.Date;
+import java.util.Map;
 
 
 @FixMethodOrder(MethodSorters.JVM)
@@ -289,6 +291,162 @@ public class SM2UtilTest {
         // 用户证书可用中间证书的公钥验证
         userCACert.verify(midKeyPairPublic, BouncyCastleProvider.PROVIDER_NAME);
 
+    }
+
+    /**
+     * 测试从 `testdata.yml` 加载配置文件
+     *
+     * @throws IOException
+     */
+    @Test
+    public void testLoadConfigMap() throws IOException {
+        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
+        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
+
+        Assert.assertNotNull(configMap);
+
+        Map<String, Object> javagm = configMap.get("javagm");
+        Assert.assertNotNull(javagm);
+
+        Object testdata = javagm.get("testdata");
+
+        Assert.assertNotNull(testdata);
+        String publicKey = (String) ((Map<String, Object>) testdata).get("public-key");
+        String privateKey = (String) ((Map<String, Object>) testdata).get("private-key");
+        String cert = (String) ((Map<String, Object>) testdata).get("cert");
+
+        Assert.assertNotNull(publicKey);
+        Assert.assertNotNull(privateKey);
+        Assert.assertNotNull(cert);
+    }
+
+    /**
+     * 测试从从字符串加载私钥对象
+     *
+     * <pre>
+     * javagm:
+     *   testdata:
+     *     private-key: |
+     *       -----BEGIN PRIVATE KEY-----
+     *       MIGTAgEAMBMGByqGSM49AgEGCCqBHM9VAYItBHkwdwIBAQQgc0UCgfELjC0V+xUm
+     *       ELYFmy0J0cee42ZpKyQ4FRTBlJSgCgYIKoEcz1UBgi2hRANCAATJbIFbxcAaDxMk
+     *       7XExTRU/bBnGEu6YfaleJxnLZS40NDNjZV+ztveWfLZk2+oWieykM3/yZ/6IieJk
+     *       5uuohUjD
+     *       -----END PRIVATE KEY-----
+     *     public-key: |
+     *       -----BEGIN PUBLIC KEY-----
+     *       MFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEyWyBW8XAGg8TJO1xMU0VP2wZxhLu
+     *       mH2pXicZy2UuNDQzY2Vfs7b3lny2ZNvqFonspDN/8mf+iIniZObrqIVIww==
+     *       -----END PUBLIC KEY-----
+     *     cert: |
+     *       -----BEGIN CERTIFICATE-----
+     *       MIIBdzCCAR2gAwIBAgIJAfA3Qnph7CieMAoGCCqBHM9VAYN1MBIxEDAOBgNVBAMM
+     *       B1Jvb3QgQ0EwHhcNMjMxMjAyMTQzMjMxWhcNODkxMjI3MDAwMDAwWjASMRAwDgYD
+     *       VQQDEwdSb290IENBMFkwEwYHKoZIzj0CAQYIKoEcz1UBgi0DQgAEyWyBW8XAGg8T
+     *       JO1xMU0VP2wZxhLumH2pXicZy2UuNDQzY2Vfs7b3lny2ZNvqFonspDN/8mf+iIni
+     *       ZObrqIVIw6NcMFowHQYDVR0OBBYEFOMvj2LPGlkOw1M1Pj34klVi8SFgMA8GA1Ud
+     *       EwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMBgGA1UdEQQRMA+BDXRlc3RAdHdn
+     *       Yy5jb20wCgYIKoEcz1UBg3UDSAAwRQIgTeoLjt+eP3kwQg17G+l12wj4MQNed1hW
+     *       aZZkJe43rkICIQCdI3WhnrvzhbEijsTXL1woIwnFgY9MIci7BmKLMpMM6w==
+     *       -----END CERTIFICATE-----
+     * </pre>
+     */
+    @Test
+    public void testLoadPrivFromString() throws Exception {
+        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
+        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
+        Map<String, Object> javagm = configMap.get("javagm");
+        Object testdata = javagm.get("testdata");
+
+        // 模拟从 配置文件 (`testdata.yml` | `application.yml` | 配置中心等) 获取密钥对字符串
+        String privateKey = (String) ((Map<String, Object>) testdata).get("private-key");
+
+        PrivateKey privKey = SM2Util.loadPrivFromString(privateKey, "");
+        Assert.assertNotNull(privKey);
+    }
+
+    /**
+     * 测试从从字符串加载公钥对象
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLoadPublicFromString() throws Exception {
+        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
+        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
+        Map<String, Object> javagm = configMap.get("javagm");
+        Object testdata = javagm.get("testdata");
+
+        // 模拟从 配置文件 (`testdata.yml` | `application.yml` | 配置中心等) 获取密钥对字符串
+        String publicKey = (String) ((Map<String, Object>) testdata).get("public-key");
+        PublicKey pubKey = SM2Util.loadPublicFromString(publicKey);
+        Assert.assertNotNull(pubKey);
+    }
+
+    /**
+     * 测试从字符串加载密钥对并测试加解密
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLoadPublicAndPrivFromString() throws Exception {
+        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
+        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
+        Map<String, Object> javagm = configMap.get("javagm");
+        Object testdata = javagm.get("testdata");
+
+        // 模拟从 配置文件 (`testdata.yml` | `application.yml` | 配置中心等) 获取密钥对字符串
+        String publicKey = (String) ((Map<String, Object>) testdata).get("public-key");
+        String privateKey = (String) ((Map<String, Object>) testdata).get("private-key");
+
+        PublicKey pubKey = SM2Util.loadPublicFromString(publicKey);
+        PrivateKey privKey = SM2Util.loadPrivFromString(privateKey, "");
+
+        Assert.assertNotNull(pubKey);
+        Assert.assertNotNull(privKey);
+
+        SM2EnginePool sm2EnginePool = new SM2EnginePool(1, SM2Engine.Mode.C1C3C2);
+        SM2Engine sm2Engine = null;
+
+        try {
+            SM2Util instance = new SM2Util();
+            sm2Engine = sm2EnginePool.borrowObject();
+            byte[] encrypted = instance.encrypt(sm2Engine, pubKey, message);
+            byte[] rs = instance.decrypt(sm2Engine, privKey, encrypted);
+            Assert.assertEquals(new String(message), new String(rs));
+
+            byte[] encrypted2 = instance.encrypt(sm2Engine, pubKey, "msg".getBytes());
+            rs = instance.decrypt(sm2Engine, privKey, encrypted2);
+            Assert.assertNotEquals(new String(message), new String(rs));
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail(exceptionHappened);
+        } finally {
+            if (sm2Engine != null) {
+                sm2EnginePool.returnObject(sm2Engine);
+            }
+        }
+    }
+
+    /**
+     * 测试从字符串加载证书对象
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLoadX509CertificateFromString() throws Exception {
+        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
+        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
+        Map<String, Object> javagm = configMap.get("javagm");
+        Object testdata = javagm.get("testdata");
+
+        // 模拟从 配置文件 (`testdata.yml` | `application.yml` | 配置中心等) 获取证书字符串
+        String cert = (String) ((Map<String, Object>) testdata).get("cert");
+        Assert.assertNotNull(cert);
+
+        X509Certificate certificate = SM2Util.loadX509CertificateFromString(cert);
+        Assert.assertNotNull(certificate);
+        Assert.assertEquals("SM3WITHSM2", certificate.getSigAlgName());
     }
 
     static {
