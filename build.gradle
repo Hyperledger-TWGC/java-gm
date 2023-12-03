@@ -38,13 +38,13 @@ check.dependsOn 'checkstyle'
 
 jacoco {
     toolVersion = "0.8.5"
-    reportsDirectory = layout.buildDirectory.dir('customJacocoReportDir')
+    reportsDir = file("$buildDir/customJacocoReportDir")
 }
 
 jacocoTestReport {
     reports {
-        xml.required = false
-        csv.required = false
+        xml.enabled false
+        csv.enabled false
         html.destination file("${buildDir}/jacocoHtml")
     }
 }

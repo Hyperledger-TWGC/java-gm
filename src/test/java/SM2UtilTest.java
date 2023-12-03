@@ -48,6 +48,8 @@ public class SM2UtilTest {
     X509Certificate x509Certificate;
     KeyPair keyPair;
 
+    Map<String, Map<String, Object>> configMap;
+
     public static void saveCSRInPem(PKCS10CertificationRequest csr, String csrFile) throws IOException, OperatorCreationException {
         String csrPem = SM2Util.pemFrom(csr);
         Files.write(Paths.get(csrFile), csrPem.getBytes());
@@ -128,6 +130,19 @@ public class SM2UtilTest {
         Assert.assertTrue(privFile.exists());
         Assert.assertTrue(reqFile.exists());
         Assert.assertTrue(certFile.exists());
+
+    }
+
+    @Before
+    public void loadTestDataConfigMap() {
+        try {
+            InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
+            this.configMap = ConfigLoader.loadConfig(in);
+
+            Assert.assertNotNull(this.configMap);
+        } catch (Exception e) {
+            Assert.fail(exceptionHappened);
+        }
     }
 
     //encrypt and decrypt
@@ -299,13 +314,8 @@ public class SM2UtilTest {
      * @throws IOException
      */
     @Test
-    public void testLoadConfigMap() throws IOException {
-        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
-        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
-
-        Assert.assertNotNull(configMap);
-
-        Map<String, Object> javagm = configMap.get("javagm");
+    public void testLoadConfigMap() {
+        Map<String, Object> javagm = this.configMap.get("javagm");
         Assert.assertNotNull(javagm);
 
         Object testdata = javagm.get("testdata");
@@ -353,12 +363,8 @@ public class SM2UtilTest {
      */
     @Test
     public void testLoadPrivFromString() throws Exception {
-        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
-        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
-        Map<String, Object> javagm = configMap.get("javagm");
+        Map<String, Object> javagm = this.configMap.get("javagm");
         Object testdata = javagm.get("testdata");
-
-        // 模拟从 配置文件 (`testdata.yml` | `application.yml` | 配置中心等) 获取密钥对字符串
         String privateKey = (String) ((Map<String, Object>) testdata).get("private-key");
 
         PrivateKey privKey = SM2Util.loadPrivFromString(privateKey, "");
@@ -372,12 +378,9 @@ public class SM2UtilTest {
      */
     @Test
     public void testLoadPublicFromString() throws Exception {
-        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
-        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
-        Map<String, Object> javagm = configMap.get("javagm");
+        Map<String, Object> javagm = this.configMap.get("javagm");
         Object testdata = javagm.get("testdata");
 
-        // 模拟从 配置文件 (`testdata.yml` | `application.yml` | 配置中心等) 获取密钥对字符串
         String publicKey = (String) ((Map<String, Object>) testdata).get("public-key");
         PublicKey pubKey = SM2Util.loadPublicFromString(publicKey);
         Assert.assertNotNull(pubKey);
@@ -390,12 +393,9 @@ public class SM2UtilTest {
      */
     @Test
     public void testLoadPublicAndPrivFromString() throws Exception {
-        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
-        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
-        Map<String, Object> javagm = configMap.get("javagm");
+        Map<String, Object> javagm = this.configMap.get("javagm");
         Object testdata = javagm.get("testdata");
 
-        // 模拟从 配置文件 (`testdata.yml` | `application.yml` | 配置中心等) 获取密钥对字符串
         String publicKey = (String) ((Map<String, Object>) testdata).get("public-key");
         String privateKey = (String) ((Map<String, Object>) testdata).get("private-key");
 
@@ -435,12 +435,9 @@ public class SM2UtilTest {
      */
     @Test
     public void testLoadX509CertificateFromString() throws Exception {
-        InputStream in = SM2UtilTest.class.getResourceAsStream("testdata.yml");
-        Map<String, Map<String, Object>> configMap = ConfigLoader.loadConfig(in);
-        Map<String, Object> javagm = configMap.get("javagm");
+        Map<String, Object> javagm = this.configMap.get("javagm");
         Object testdata = javagm.get("testdata");
 
-        // 模拟从 配置文件 (`testdata.yml` | `application.yml` | 配置中心等) 获取证书字符串
         String cert = (String) ((Map<String, Object>) testdata).get("cert");
         Assert.assertNotNull(cert);
 

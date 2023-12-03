@@ -183,31 +183,23 @@ public class SM2Util {
     }
 
     public static PrivateKey loadPrivFromFile(String filename, String password) throws IOException, OperatorCreationException, PKCSException {
-        PrivateKey priv = null;
-        try (PEMParser pemParser = new PEMParser(new FileReader(filename))) {
-            Object obj = pemParser.readObject();
-            if (password != null && password.length() > 0) {
-                if (obj instanceof PKCS8EncryptedPrivateKeyInfo) {
-                    PKCS8EncryptedPrivateKeyInfo epkInfo = (PKCS8EncryptedPrivateKeyInfo) obj;
-                    InputDecryptorProvider decryptor = new JceOpenSSLPKCS8DecryptorProviderBuilder()
-                            .setProvider(BouncyCastleProvider.PROVIDER_NAME)
-                            .build(password.toCharArray());
-                    PrivateKeyInfo pkInfo = epkInfo.decryptPrivateKeyInfo(decryptor);
-                    priv = CONVERTER.getPrivateKey(pkInfo);
-                }
-            } else {
-                priv = CONVERTER.getPrivateKey((PrivateKeyInfo) obj);
+        return loadPriv(password, () -> {
+            try {
+                return new FileReader(filename);
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException("Private key \"" + filename + "\" not found", e);
             }
-        }
-        return priv;
+        });
     }
 
     public static PublicKey loadPublicFromFile(String filename) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        try (PemReader pemReader = new PemReader(new FileReader(filename))) {
-            PemObject spki = pemReader.readPemObject();
-            Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
-            return KeyFactory.getInstance(Const.EC_VALUE, BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(spki.getContent()));
-        }
+        return loadPublic(() -> {
+            try {
+                return new FileReader(filename);
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException("Public key \"" + filename + "\" not found", e);
+            }
+        });
     }
 
     public static X509Certificate loadX509CertificateFromFile(String filename) throws IOException, CertificateException,
