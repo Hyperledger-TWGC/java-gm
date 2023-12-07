@@ -263,6 +263,16 @@ public class SM2Util {
                 BouncyCastleProvider.CONFIGURATION);
     }
 
+    /**
+     * 加载私钥
+     *
+     * @param password 密码
+     * @param fx {@link Reader} 回调函数
+     * @return {@link PrivateKey}
+     * @throws IOException
+     * @throws OperatorCreationException
+     * @throws PKCSException
+     */
     public static PrivateKey loadPriv(String password, Supplier<Reader> fx) throws IOException, OperatorCreationException, PKCSException {
         PrivateKey priv = null;
         try (PEMParser pemParser = new PEMParser(fx.get())) {
@@ -283,6 +293,16 @@ public class SM2Util {
         return priv;
     }
 
+    /**
+     * 加载公钥
+     *
+     * @param fx {@link Reader} 回调函数
+     * @return {@link PublicKey}
+     * @throws IOException
+     * @throws NoSuchProviderException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     */
     public static PublicKey loadPublic(Supplier<Reader> fx) throws IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
         try (PemReader pemReader = new PemReader(fx.get())) {
             PemObject spki = pemReader.readPemObject();
