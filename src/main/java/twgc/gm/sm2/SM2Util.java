@@ -1,6 +1,5 @@
 package twgc.gm.sm2;
 
-import javax.security.auth.x500.X500Principal;
 import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
@@ -12,6 +11,8 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.function.Supplier;
+import javax.security.auth.x500.X500Principal;
+
 import org.bouncycastle.asn1.gm.GMNamedCurves;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x9.X9ECParameters;
