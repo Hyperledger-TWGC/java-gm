@@ -15,7 +15,7 @@ jobs:
         with:
           distribution: temurin
           java-version: 11
-      - uses: gradle/gradle-build-action@v3.0.0
+      - uses: gradle/gradle-build-action@v3.2.0
         with:
           gradle-version: 6.5
       - run: gradle clean build
